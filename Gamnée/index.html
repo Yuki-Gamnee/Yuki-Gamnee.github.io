@@ -8,17 +8,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="stylesheet" href="style.css">
-    <!-- Web App Manifest (PWA 必须) -->
     <link rel="manifest" href="./manifest.json">
-    <!-- iOS 主屏幕图标 -->
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="./icons/icon-152.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="./icons/icon-120.png">
-    <link rel="apple-touch-icon" href="./icons/icon-180.png">
 </head>
 <body>
 
-    <!-- 头部 -->
     <header class="app-header">
         <div class="header-main">
             <h1 class="app-title">Gamnée</h1>
@@ -29,7 +23,6 @@
         </div>
     </header>
 
-    <!-- 库工具栏 -->
     <div id="library-toolbar" class="library-toolbar" style="display:none;">
         <div class="search-box">
             <i class="ph ph-magnifying-glass"></i>
@@ -38,7 +31,6 @@
         <button id="btn-sort" class="icon-btn-small"><i class="ph ph-sort-ascending"></i></button>
     </div>
 
-    <!-- 底部导航 -->
     <nav class="tab-nav">
         <button class="tab-btn active" data-tab="wishlist">
             <i class="ph ph-star"></i><span>想玩</span>
@@ -57,12 +49,9 @@
         </button>
     </nav>
 
-    <!-- 主内容区 -->
     <main id="app-container" class="content-area">
-        <!-- JS渲染 -->
-    </main>
+        </main>
     
-    <!-- 空状态 -->
     <div id="empty-state-view" class="empty-state" style="display:none;">
         <div class="float-icon-layer">
             <div class="float-icon lemon">🍋</div>
@@ -71,99 +60,114 @@
         <p class="empty-text-layer">这里还是一片荒原...</p>
     </div>
 
-    <!-- FAB 添加 + 生成器入口 -->
     <button id="fab-add" class="fab"><i class="ph ph-plus"></i></button>
     <button id="fab-generator" class="fab-mini"><i class="ph ph-image-square"></i></button>
 
-    <!-- ========== 推し長図生成器 ========== -->
+    <!-- ========== 推图生成器（优化版） ========== -->
     <div id="sheet-generator" class="sheet fullscreen-sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-generator">关闭</button>
-            <h3>生成推し長図</h3>
+            <h3>分享卡片</h3>
             <button class="btn-text save" id="btn-export-image">保存图片</button>
         </div>
-        <div class="sheet-body generator-layout">
-            <!-- 左侧/上方 设置面板 -->
-            <div class="generator-controls">
-                <!-- 展示内容区块 -->
-                <div class="gen-section">
-                    <div class="gen-section-title">展示内容</div>
-                    <div class="checkbox-group-vertical">
-                        <label class="custom-check">
-                            <input type="checkbox" id="gen-check-profile" checked>
-                            <span class="check-box"></span> 个人资料
-                        </label>
-                        <div style="display:flex; gap:15px; flex-wrap:wrap; background:#fff; padding:5px 0;">
-                            <label class="custom-check">
-                                <input type="checkbox" id="gen-check-playing" checked>
-                                <span class="check-box"></span> 在玩
-                            </label>
-                            <label class="custom-check">
-                                <input type="checkbox" id="gen-check-finished" checked>
-                                <span class="check-box"></span> 已玩
-                            </label>
-                            <label class="custom-check">
-                                <input type="checkbox" id="gen-check-wishlist">
-                                <span class="check-box"></span> 想玩
-                            </label>
-                        </div>
-                        <label class="custom-check">
-                            <input type="checkbox" id="gen-check-oshi" checked>
-                            <span class="check-box"></span> 推し角色
-                        </label>
-                    </div>
+
+        <div class="sheet-body generator-body">
+            <!-- 预览区（放大） -->
+            <div class="gen-preview-wrapper">
+                <div class="canvas-shadow-box">
+                    <canvas id="gen-canvas"></canvas>
                 </div>
-                <!-- 外观风格区块 -->
-                <div class="gen-section">
-                    <div class="gen-section-title">外观风格</div>
-                    <!-- 背景颜色 -->
-                    <div class="control-row">
-                        <label>背景颜色</label>
-                        <input type="color" id="gen-bg-color" value="#faf9fe">
-                    </div>
-                    <!-- 背景图片 -->
-                    <div class="control-row">
-                        <label>背景图片</label>
-                        <button class="btn-xs-outline" id="btn-gen-bg-img">上传</button>
-                        <input type="file" id="gen-bg-input" accept="image/*" hidden>
-                    </div>
-                    <button class="btn-xs-text" id="btn-gen-reset-bg" style="display:none;">清除背景图</button>
-                    <!-- 卡片透明度 -->
-                    <div class="control-row">
-                        <label>卡片透明度</label>
-                        <input type="range" id="gen-card-opacity" min="0" max="1" step="0.1" value="1">
-                    </div>
-                    <!-- 排版模式（单/双列） -->
-                    <div class="control-row">
-                        <label>排版模式</label>
-                        <div class="toggle-switch">
-                            <button class="toggle-btn active" data-col="1">单列</button>
-                            <button class="toggle-btn" data-col="2">双列</button>
-                        </div>
-                    </div>
-                    <!-- 字体选择（新增） -->
-                    <div class="control-row">
-                        <label>推图字体</label>
-                        <div class="toggle-switch" id="font-family-toggle">
-                            <button class="toggle-btn active" data-font="sans-serif">现代体</button>
-                            <button class="toggle-btn" data-font="'Songti SC', '宋体', serif">宋体</button>
-                        </div>
-                    </div>
-                </div>
+                <p class="gen-tip">预览模式 (导出为高清大图)</p>
             </div>
-            <!-- 右侧/下方 预览画布 -->
-            <div class="generator-preview">
-                <div class="gen-preview-container">
-                    <canvas id="gen-canvas" width="750" height="1334"></canvas>
+
+            <!-- 控制面板（缩小） -->
+            <div class="gen-controls-container">
+                <!-- 展示内容胶囊复选框 -->
+                <div class="control-card">
+                    <div class="card-label">展示内容</div>
+                    <div class="tags-toggle-group">
+                        <label class="toggle-tag">
+                            <input type="checkbox" id="gen-check-profile" checked>
+                            <span>个人资料</span>
+                        </label>
+                        <label class="toggle-tag">
+                            <input type="checkbox" id="gen-check-playing" checked>
+                            <span>在玩</span>
+                        </label>
+                        <label class="toggle-tag">
+                            <input type="checkbox" id="gen-check-finished" checked>
+                            <span>已玩</span>
+                        </label>
+                        <label class="toggle-tag">
+                            <input type="checkbox" id="gen-check-wishlist">
+                            <span>想玩</span>
+                        </label>
+                        <label class="toggle-tag">
+                            <input type="checkbox" id="gen-check-oshi" checked>
+                            <span>推し</span>
+                        </label>
+                    </div>
                 </div>
-                <p class="preview-hint">预览模式 (导出时自动生成高清原图)</p>
+
+                <!-- 布局与风格 -->
+                <div class="control-card">
+                    <div class="card-label">布局与风格</div>
+
+                    <!-- 游戏排版模式（独立） -->
+                    <div class="setting-row">
+                        <span>游戏排版</span>
+                        <div class="segment-control" style="width: auto;">
+                            <button class="segment-btn active" data-gamecol="1">列表</button>
+                            <button class="segment-btn" data-gamecol="2">网格</button>
+                        </div>
+                    </div>
+
+                    <!-- 推し排版模式（独立） -->
+                    <div class="setting-row">
+                        <span>推し排版</span>
+                        <div class="segment-control" style="width: auto;">
+                            <button class="segment-btn active" data-oshicol="1">列表</button>
+                            <button class="segment-btn" data-oshicol="2">网格</button>
+                        </div>
+                    </div>
+
+                    <!-- 字体切换（修复宋体） -->
+                    <div class="setting-row">
+                        <span>字体</span>
+                        <div class="segment-control" style="width: auto;">
+                            <button class="segment-btn active" data-font="sans-serif">现代体</button>
+                            <button class="segment-btn" data-font="'Songti SC', '宋体', serif">宋体</button>
+                        </div>
+                    </div>
+
+                    <!-- 标题颜色（新增） -->
+                    <div class="setting-row">
+                        <span>标题颜色</span>
+                        <input type="color" id="gen-title-color" value="#b2bec3">
+                    </div>
+
+                    <!-- 背景设置 -->
+                    <div class="setting-row">
+                        <span>背景</span>
+                        <div class="bg-actions">
+                            <input type="color" id="gen-bg-color" value="#faf9fe">
+                            <button class="btn-small-outline" id="btn-gen-bg-img"><i class="ph ph-image"></i> 图片</button>
+                            <button class="btn-small-outline danger" id="btn-gen-reset-bg" style="display:none"><i class="ph ph-trash"></i> 清除</button>
+                        </div>
+                    </div>
+                    <input type="file" id="gen-bg-input" accept="image/*" hidden>
+
+                    <!-- 卡片透明度 -->
+                    <div class="setting-row">
+                        <span>卡片透明度</span>
+                        <input type="range" id="gen-card-opacity" min="0.5" max="1" step="0.05" value="1">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ================= 其他 Sheets ================= -->
-
-    <!-- 设置 Sheet -->
+    <!-- 以下为其他 sheets（保持不变） -->
     <div id="sheet-settings" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-settings">关闭</button>
@@ -350,6 +354,7 @@
                     <i class="ph ph-calendar-blank"></i> <span id="detail-dates">-</span>
                 </div>
             </div>
+
             <div class="info-card">
                 <div class="card-header-row">
                     <span>💖 角色 (推し)</span>
@@ -357,6 +362,7 @@
                 </div>
                 <div id="detail-related-oshis" class="related-oshi-list"></div>
             </div>
+
             <div class="info-card">
                 <div class="card-header">📝 备注</div>
                 <p id="detail-note-text" class="text-content"></p>
@@ -402,7 +408,6 @@
         </div>
     </div>
 
-    <!-- 全局文件输入 -->
     <input type="file" id="global-file-input" accept="image/*" hidden>
 
     <script src="app.js"></script>

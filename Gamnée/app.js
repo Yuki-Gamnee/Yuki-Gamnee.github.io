@@ -1,5 +1,5 @@
 // --- 配置与数据库 ---
-const DB_NAME = 'GamneeDB_v7'; 
+const DB_NAME = 'GamnéeDB_v7'; 
 const DB_VERSION = 1;
 
 const db = {
@@ -559,26 +559,44 @@ const app = {
 };
 
 // ==========================================
-// [推し長図] 生成器 (2025.02.14 终版·胶囊放大+间距优化)
+// [核心重构] 推图生成器 v3.1 (独立排版)
 // ==========================================
 const Generator = {
     canvas: null,
     ctx: null,
-    bgImage: null,
+    bgImage: null, // 存储背景图
+    
+    // 排版配置
     config: {
         showProfile: true,
         showPlaying: true,
         showFinished: true,
         showWishlist: false,
         showOshi: true,
+        
         bgColor: '#faf9fe',
-        bgImage: null,
+        bgImage: null, // 存储背景图对象
         cardOpacity: 1.0,
-        columns: 1,
+        
+        // 独立排版模式
+        gameColumns: 1, // 游戏排版：1=列表, 2=网格
+        oshiColumns: 1, // 推し排版：1=列表, 2=网格
+        
+        // 画布基准参数 (高清导出)
+        baseWidth: 750, 
+        paddingX: 40,
+        paddingY: 60,
+        
+        // 字体设置
         fontFamily: 'sans-serif',
-        width: 750,
-        padding: 40,
-        cardRadius: 20
+        
+        // 颜色
+        colTitle: '#2d3436',
+        colSub: '#636e72',
+        colAccent: '#00b894',
+
+        // 新增标题颜色
+        titleColor: '#b2bec3'
     },
     
     init: function() {
@@ -586,25 +604,36 @@ const Generator = {
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d');
         this.bindEvents();
+        // 尝试加载上次的配置
         this.loadConfig();
     },
 
     loadConfig: function() {
-        const saved = localStorage.getItem('gamnee_generator_config');
-        if (saved) {
+        // 读取本地存储配置，恢复UI状态
+        const saved = localStorage.getItem('gamnee_gen_config_v3');
+        if(saved) {
             try {
                 const parsed = JSON.parse(saved);
+                // 兼容旧版配置：如果存在旧的columns字段，则同时赋值给gameColumns和oshiColumns
+                if (parsed.columns !== undefined && parsed.gameColumns === undefined) {
+                    parsed.gameColumns = parsed.columns;
+                    parsed.oshiColumns = parsed.columns;
+                }
+                // 排除 bgImage 因为不能存 JSON
+                delete parsed.bgImage; 
                 Object.assign(this.config, parsed);
-                this.syncUIConfig();
+                this.syncUI();
             } catch(e) {}
         }
     },
 
     saveConfig: function() {
-        localStorage.setItem('gamnee_generator_config', JSON.stringify(this.config));
+        const toSave = {...this.config};
+        delete toSave.bgImage; // 不存图片对象
+        localStorage.setItem('gamnee_gen_config_v3', JSON.stringify(toSave));
     },
 
-    syncUIConfig: function() {
+    syncUI: function() {
         const setCheck = (id, val) => {
             const el = document.getElementById(id);
             if(el) el.checked = val;
@@ -618,134 +647,162 @@ const Generator = {
         const colorPicker = document.getElementById('gen-bg-color');
         if(colorPicker) colorPicker.value = this.config.bgColor;
 
+        const titleColorPicker = document.getElementById('gen-title-color');
+        if(titleColorPicker) titleColorPicker.value = this.config.titleColor;
+
         const opacitySlider = document.getElementById('gen-card-opacity');
         if(opacitySlider) opacitySlider.value = this.config.cardOpacity;
+        
+        // 恢复游戏排版按钮状态
+        const gameColBtns = document.querySelectorAll('.segment-btn[data-gamecol]');
+        gameColBtns.forEach(btn => {
+            if(parseInt(btn.dataset.gamecol) === this.config.gameColumns) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
 
-        const colBtns = document.querySelectorAll('.toggle-btn[data-col]');
-        colBtns.forEach(btn => btn.classList.remove('active'));
-        const activeColBtn = Array.from(colBtns).find(btn => parseInt(btn.dataset.col) === this.config.columns);
-        if(activeColBtn) activeColBtn.classList.add('active');
+        // 恢复推し排版按钮状态
+        const oshiColBtns = document.querySelectorAll('.segment-btn[data-oshicol]');
+        oshiColBtns.forEach(btn => {
+            if(parseInt(btn.dataset.oshicol) === this.config.oshiColumns) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
 
-        const fontBtns = document.querySelectorAll('#font-family-toggle .toggle-btn');
-        fontBtns.forEach(btn => btn.classList.remove('active'));
-        const activeFontBtn = Array.from(fontBtns).find(btn => btn.dataset.font === this.config.fontFamily);
-        if(activeFontBtn) activeFontBtn.classList.add('active');
-        else fontBtns[0]?.classList.add('active');
+        // 恢复字体按钮
+        const fontBtns = document.querySelectorAll('.segment-btn[data-font]');
+        fontBtns.forEach(btn => {
+            if (btn.dataset.font === this.config.fontFamily) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
 
         const resetBgBtn = document.getElementById('btn-gen-reset-bg');
         if(resetBgBtn) resetBgBtn.style.display = this.config.bgImage ? 'block' : 'none';
     },
 
     bindEvents: function() {
-        const btn = document.getElementById('fab-generator');
-        if(btn) btn.onclick = () => {
+        // 1. 打开入口
+        const fab = document.getElementById('fab-generator');
+        if(fab) fab.onclick = () => {
             document.getElementById('sheet-generator').classList.add('active');
-            this.loadConfig(); 
+            this.draw(); // 打开即生成
+        };
+
+        const refresh = () => {
+            this.saveConfig();
             this.draw();
         };
 
-        ['profile','playing','finished','wishlist','oshi'].forEach(k => {
-            const el = document.getElementById('gen-check-' + k);
-            if(el) el.onchange = (e) => { 
-                this.config['show' + k.charAt(0).toUpperCase() + k.slice(1)] = e.target.checked; 
-                this.saveConfig();
-                this.draw(); 
+        // 2. 绑定复选框
+        ['profile','playing','finished','wishlist','oshi'].forEach(key => {
+            const el = document.getElementById(`gen-check-${key}`);
+            if(el) el.onchange = (e) => {
+                this.config['show'+key.charAt(0).toUpperCase()+key.slice(1)] = e.target.checked;
+                refresh();
             };
         });
 
-        const colBtns = document.querySelectorAll('.toggle-btn[data-col]');
-        colBtns.forEach(b => b.onclick = (e) => {
-            colBtns.forEach(x => x.classList.remove('active'));
-            e.target.classList.add('active');
-            this.config.columns = parseInt(e.target.dataset.col);
-            this.saveConfig();
-            this.draw();
-        });
-
-        const exportBtn = document.getElementById('btn-export-image');
-        if(exportBtn) exportBtn.onclick = () => {
-            const link = document.createElement('a');
-            link.download = `Gamnee_${Date.now()}.png`;
-            link.href = this.canvas.toDataURL('image/png');
-            link.click();
+        // 3. 外观设置
+        const bgPicker = document.getElementById('gen-bg-color');
+        if(bgPicker) bgPicker.oninput = (e) => {
+            this.config.bgColor = e.target.value;
+            this.config.bgImage = null; // 颜色覆盖图片
+            const resetBtn = document.getElementById('btn-gen-reset-bg');
+            if(resetBtn) resetBtn.style.display = 'none';
+            refresh();
         };
 
-        // 背景图片上传
-        const bgUploadBtn = document.getElementById('btn-gen-bg-img');
-        const bgInput = document.getElementById('gen-bg-input');
-        const resetBgBtn = document.getElementById('btn-gen-reset-bg');
+        const titleColorPicker = document.getElementById('gen-title-color');
+        if(titleColorPicker) titleColorPicker.oninput = (e) => {
+            this.config.titleColor = e.target.value;
+            refresh();
+        };
 
-        if (bgUploadBtn) {
-            bgUploadBtn.addEventListener('click', () => bgInput.click());
-        }
-        if (bgInput) {
-            bgInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+        const opacityRange = document.getElementById('gen-card-opacity');
+        if(opacityRange) opacityRange.oninput = (e) => {
+            this.config.cardOpacity = parseFloat(e.target.value);
+            refresh();
+        };
+
+        // 游戏排版切换
+        const gameColBtns = document.querySelectorAll('.segment-btn[data-gamecol]');
+        gameColBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                gameColBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.config.gameColumns = parseInt(e.target.dataset.gamecol);
+                refresh();
+            };
+        });
+
+        // 推し排版切换
+        const oshiColBtns = document.querySelectorAll('.segment-btn[data-oshicol]');
+        oshiColBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                oshiColBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.config.oshiColumns = parseInt(e.target.dataset.oshicol);
+                refresh();
+            };
+        });
+
+        // 字体切换（使用通用名称）
+        const fontBtns = document.querySelectorAll('.segment-btn[data-font]');
+        fontBtns.forEach(btn => {
+            btn.onclick = (e) => {
+                fontBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                this.config.fontFamily = e.target.dataset.font;
+                refresh();
+            };
+        });
+
+        // 4. 背景图上传
+        const bgBtn = document.getElementById('btn-gen-bg-img');
+        const bgInput = document.getElementById('gen-bg-input');
+        const bgReset = document.getElementById('btn-gen-reset-bg');
+
+        if(bgBtn) bgBtn.onclick = () => bgInput.click();
+        if(bgInput) bgInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const img = new Image();
                     img.onload = () => {
                         this.config.bgImage = img;
-                        this.config.bgColor = null;
-                        this.saveConfig();
-                        if (resetBgBtn) resetBgBtn.style.display = 'block';
-                        this.draw();
+                        if(bgReset) bgReset.style.display = 'inline-flex';
+                        refresh();
                     };
                     img.src = ev.target.result;
                 };
                 reader.readAsDataURL(file);
-            });
-        }
-        if (resetBgBtn) {
-            resetBgBtn.addEventListener('click', () => {
-                this.config.bgImage = null;
-                this.config.bgColor = '#faf9fe';
-                this.saveConfig();
-                resetBgBtn.style.display = 'none';
-                const colorPicker = document.getElementById('gen-bg-color');
-                if (colorPicker) colorPicker.value = '#faf9fe';
-                this.draw();
-            });
-        }
+            }
+        };
+        if(bgReset) bgReset.onclick = () => {
+            this.config.bgImage = null;
+            bgReset.style.display = 'none';
+            refresh();
+        };
 
-        const bgColorPicker = document.getElementById('gen-bg-color');
-        if (bgColorPicker) {
-            bgColorPicker.addEventListener('input', (e) => {
-                this.config.bgColor = e.target.value;
-                this.config.bgImage = null;
-                this.saveConfig();
-                if (resetBgBtn) resetBgBtn.style.display = 'none';
-                this.draw();
-            });
-        }
-
-        const opacitySlider = document.getElementById('gen-card-opacity');
-        if (opacitySlider) {
-            opacitySlider.addEventListener('input', (e) => {
-                this.config.cardOpacity = parseFloat(e.target.value);
-                this.saveConfig();
-                this.draw();
-            });
-        }
-
-        const fontBtns = document.querySelectorAll('#font-family-toggle .toggle-btn');
-        fontBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                fontBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.config.fontFamily = e.target.dataset.font;
-                this.saveConfig();
-                this.draw();
-            });
-        });
+        // 5. 导出
+        const exportBtn = document.getElementById('btn-export-image');
+        if(exportBtn) exportBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.download = `Gamnee_Share_${Date.now()}.png`;
+            link.href = this.canvas.toDataURL('image/png', 1.0); // 最高质量
+            link.click();
+        };
     },
 
-    getFontString: function(weight, size) {
-        return `${weight || 'normal'} ${size}px ${this.config.fontFamily || 'sans-serif'}`;
-    },
-
-    // --- 核心绘制逻辑（2025.02.14 终版）---
+    // --- 核心绘制流程 ---
     draw: async function() {
         const user = {
             name: localStorage.getItem('gamnee_username') || 'Gamnée 玩家',
@@ -753,310 +810,413 @@ const Generator = {
             avatar: localStorage.getItem('gamnee_avatar') || ''
         };
 
+        // 筛选数据
         const games = (app.data.games || []).filter(g => {
-            if (g.status === 'playing' && this.config.showPlaying) return true;
-            if (g.status === 'finished' && this.config.showFinished) return true;
-            if (g.status === 'wishlist' && this.config.showWishlist) return true;
+            if(g.status === 'playing' && this.config.showPlaying) return true;
+            if(g.status === 'finished' && this.config.showFinished) return true;
+            if(g.status === 'wishlist' && this.config.showWishlist) return true;
             return false;
         });
 
         const oshis = this.config.showOshi ? (app.data.oshi || []) : [];
 
-        // 布局常量（终版优化）
-        const ONE_COL = this.config.columns === 1;
-        const CARD_H = ONE_COL ? 200 : 300;          // 双列高度增加到300，容纳更大胶囊和间距
-        const OSHI_H = ONE_COL ? 180 : 200;
-        const CARD_GAP = 30;
-        const SECTION_GAP = 60;
-        const TITLE_H = 70;
+        // == 第一步：计算总高度 (虚拟排版) ==
+        // 我们不实际画，只是跑一遍逻辑看看需要多高
+        const totalHeight = await this.layoutEngine(user, games, oshis, true);
 
-        // 计算总高度
-        let totalH = 100;
-        if (this.config.showProfile) {
-            totalH += 200 + SECTION_GAP;
-        }
+        // == 第二步：设置画布 ==
+        this.canvas.width = this.config.baseWidth;
+        this.canvas.height = totalHeight;
         
-        if (games.length > 0) {
-            totalH += TITLE_H;
-            const rows = Math.ceil(games.length / this.config.columns);
-            totalH += rows * CARD_H + (rows - 1) * CARD_GAP + SECTION_GAP;
-        }
-
-        if (oshis.length > 0) {
-            totalH += TITLE_H;
-            const rows = Math.ceil(oshis.length / this.config.columns);
-            totalH += rows * OSHI_H + (rows - 1) * CARD_GAP + SECTION_GAP;
-        }
-
-        totalH += 100;
-
-        this.canvas.width = this.config.width;
-        this.canvas.height = totalH;
-        this.canvas.style.width = '100%';
-        this.canvas.style.height = 'auto';
-
-        // 绘制背景
-        if (this.config.bgImage) {
-            const img = this.config.bgImage;
-            const scale = Math.max(this.canvas.width / img.width, this.canvas.height / img.height);
-            const x = (this.canvas.width - img.width * scale) / 2;
-            const y = (this.canvas.height - img.height * scale) / 2;
-            this.ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        // 绘制背景：如果有背景图片则只绘制图片，否则绘制纯色
+        if(this.config.bgImage) {
+            this.drawCoverBg(this.config.bgImage, totalHeight);
+            // 不再叠加颜色蒙版，确保背景图片完全可见
         } else {
-            this.ctx.fillStyle = this.config.bgColor || '#faf9fe';
+            this.ctx.fillStyle = this.config.bgColor;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
 
-        let curY = 80;
-
-        // 个人资料卡片
-        if (this.config.showProfile) {
-            await this.drawProfileCard(user, curY);
-            curY += 200 + SECTION_GAP;
-        }
-
-        // 游戏列表
-        if (games.length > 0) {
-            this.drawSectionTitle('GAME RECORDS', curY);
-            curY += TITLE_H;
-            
-            const colW = (this.canvas.width - this.config.padding*2 - (ONE_COL ? 0 : 30)) / this.config.columns;
-
-            for (let i = 0; i < games.length; i++) {
-                const row = Math.floor(i / this.config.columns);
-                const col = i % this.config.columns;
-                const x = this.config.padding + col * (colW + 30);
-                const y = curY + row * (CARD_H + CARD_GAP);
-                await this.drawGameCard(games[i], x, y, colW, CARD_H, ONE_COL);
-            }
-            const rows = Math.ceil(games.length / this.config.columns);
-            curY += rows * (CARD_H + CARD_GAP) + SECTION_GAP;
-        }
-
-        // 推し角色
-        if (oshis.length > 0) {
-            this.drawSectionTitle('MY OSHI', curY);
-            curY += TITLE_H;
-            
-            const colW = (this.canvas.width - this.config.padding*2 - (ONE_COL ? 0 : 30)) / this.config.columns;
-
-            for (let i = 0; i < oshis.length; i++) {
-                const row = Math.floor(i / this.config.columns);
-                const col = i % this.config.columns;
-                const x = this.config.padding + col * (colW + 30);
-                const y = curY + row * (OSHI_H + CARD_GAP);
-                await this.drawOshiCard(oshis[i], x, y, colW, OSHI_H, ONE_COL);
-            }
-        }
+        // == 第三步：实际绘制 ==
+        await this.layoutEngine(user, games, oshis, false);
 
         // Footer
-        this.ctx.fillStyle = '#ccc';
-        this.ctx.font = this.getFontString('normal', 24);
+        this.ctx.fillStyle = '#b2bec3';
+        this.ctx.font = '500 24px ' + this.config.fontFamily;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Generated with Gamnée', this.canvas.width/2, totalH - 40);
+        this.ctx.fillText('Generated by Gamnée', this.canvas.width/2, totalHeight - 40);
     },
 
-    // --- 个人资料卡片（高度200，紧凑）---
-    drawProfileCard: async function(u, y) {
-        const x = this.config.padding;
-        const w = this.canvas.width - x*2;
-        const h = 200;
-        
-        this.ctx.save();
-        if (this.config.cardOpacity !== undefined) {
-            this.ctx.globalAlpha = this.config.cardOpacity;
+    // --- 智能排版引擎 (核心) ---
+    // dryRun = true 时只返回高度，不画
+    layoutEngine: async function(user, games, oshis, dryRun) {
+        let cursorY = this.config.paddingY;
+        const contentW = this.config.baseWidth - (this.config.paddingX * 2);
+
+        // 1. 个人资料卡片
+        if(this.config.showProfile) {
+            const h = await this.renderProfileCard(user, this.config.paddingX, cursorY, contentW, dryRun);
+            cursorY += h + 40; // 卡片间距
         }
-        this.drawShadowRect(x, y, w, h);
-        this.ctx.restore();
 
-        await this.drawCircleImg(u.avatar, x + 40, y + 40, 120);
-        
-        this.ctx.save();
-        this.ctx.fillStyle = '#333';
-        this.ctx.textAlign = 'left';
-        this.ctx.font = this.getFontString('bold', 40);
-        this.ctx.fillText(u.name, x + 190, y + 80);
-        
-        this.ctx.fillStyle = '#777';
-        this.ctx.font = this.getFontString('normal', 24);
-        this.wrapText(u.bio, x + 190, y + 125, w - 220, 32);
-        this.ctx.restore();
-    },
+        // 2. 游戏列表（使用游戏独立排版）
+        if(games.length > 0) {
+            if(!dryRun) this.drawSectionTitle('GAME RECORDS', cursorY);
+            cursorY += 80;
 
-    // --- 游戏卡片（终版优化：间距加大、胶囊放大）---
-    drawGameCard: async function(g, x, y, w, h, isSingle) {
-        // 卡片背景透明度
-        this.ctx.save();
-        if (this.config.cardOpacity !== undefined) {
-            this.ctx.globalAlpha = this.config.cardOpacity;
-        }
-        this.drawShadowRect(x, y, w, h);
-        this.ctx.restore();
+            if(this.config.gameColumns === 1) {
+                // 单列模式
+                for(let g of games) {
+                    const h = await this.renderGameCardSingle(g, this.config.paddingX, cursorY, contentW, dryRun);
+                    cursorY += h + 30;
+                }
+            } else {
+                // 双列模式
+                const gap = 30;
+                const colW = (contentW - gap) / 2;
+                for(let i=0; i<games.length; i+=2) {
+                    const g1 = games[i];
+                    const g2 = games[i+1];
+                    
+                    // 并行计算两个卡片的高度，取最大值作为行高
+                    const h1 = await this.renderGameCardGrid(g1, this.config.paddingX, cursorY, colW, true);
+                    const h2 = g2 ? await this.renderGameCardGrid(g2, this.config.paddingX + colW + gap, cursorY, colW, true) : 0;
+                    
+                    const rowH = Math.max(h1, h2);
 
-        this.ctx.save();
-
-        if (isSingle) {
-            // 单列布局：胶囊放大（字体22px）
-            await this.drawRoundedImg(g.cover, x + 30, y + (h - 150)/2, 110, 150, 12);
-            const textX = x + 160;
-            this.ctx.fillStyle = '#333';
-            this.ctx.font = this.getFontString('bold', 30);
-            this.ctx.fillText(g.name, textX, y + 60);
-            const statusColor = g.status === 'playing' ? '#009688' : (g.status === 'finished' ? '#666' : '#FF9800');
-            const statusBg = g.status === 'playing' ? '#E0F2F1' : (g.status === 'finished' ? '#F5F5F5' : '#FFF3E0');
-            this.drawBadge(app.getStatusText(g.status), textX, y + 90, statusBg, statusColor, 22); // 字体22px
-            this.ctx.fillStyle = '#999';
-            this.ctx.font = this.getFontString('normal', 20);
-            this.ctx.fillText(g.platform || '全平台', textX, y + 145);
-        } else {
-            // ===== 双列布局（终版优化）=====
-            // 1. 图片：边距16px，圆角20px
-            const imgSize = w - 32;
-            const imgX = x + 16;
-            const imgY = y + 16;
-            await this.drawRoundedImg(g.cover, imgX, imgY, imgSize, imgSize, 20);
-
-            // 2. 游戏名称：与图片间距增加 40→50
-            this.ctx.fillStyle = '#333';
-            this.ctx.font = this.getFontString('500', 24);
-            this.ctx.textAlign = 'left';
-            let title = g.name;
-            const maxTitleWidth = w - 32;
-            if (this.ctx.measureText(title).width > maxTitleWidth) {
-                for (let i = title.length; i > 0; i--) {
-                    const sub = title.substring(0, i) + '…';
-                    if (this.ctx.measureText(sub).width <= maxTitleWidth) {
-                        title = sub;
-                        break;
+                    if(!dryRun) {
+                        await this.renderGameCardGrid(g1, this.config.paddingX, cursorY, colW, false, rowH);
+                        if(g2) await this.renderGameCardGrid(g2, this.config.paddingX + colW + gap, cursorY, colW, false, rowH);
                     }
+                    cursorY += rowH + 30;
                 }
             }
-            this.ctx.fillText(title, x + 16, y + imgSize + 50); // 原40 → 50
-
-            // 3. 状态标签：字体18px，胶囊高度30px，圆角15px，留白更大
-            const statusText = app.getStatusText(g.status);
-            this.ctx.font = this.getFontString('normal', 18);   // 16→18
-            const statusWidth = this.ctx.measureText(statusText).width + 20; // 宽度增加
-            const statusHeight = 30;                            // 24→30
-            const statusY = y + imgSize + 70;                  // 原56+14调整
-            this.ctx.fillStyle = g.status === 'playing' ? '#E0F2F1' : (g.status === 'finished' ? '#F5F5F5' : '#FFF3E0');
-            this.roundRect(x + 16, statusY, statusWidth, statusHeight, 15); // 圆角12→15
-            this.ctx.fill();
-            this.ctx.fillStyle = g.status === 'playing' ? '#009688' : (g.status === 'finished' ? '#666' : '#F57C00');
-            this.ctx.font = this.getFontString('normal', 18);
-            this.ctx.fillText(statusText, x + 16 + 10, statusY + 23); // 垂直居中
+            cursorY += 20;
         }
-        this.ctx.restore();
+
+        // 3. 推し列表（使用推し独立排版）
+        if(oshis.length > 0) {
+            if(!dryRun) this.drawSectionTitle('MY OSHI', cursorY);
+            cursorY += 80;
+
+            if(this.config.oshiColumns === 1) {
+                for(let o of oshis) {
+                    const h = await this.renderOshiCardSingle(o, this.config.paddingX, cursorY, contentW, dryRun);
+                    cursorY += h + 30;
+                }
+            } else {
+                const gap = 30;
+                const colW = (contentW - gap) / 2;
+                for(let i=0; i<oshis.length; i+=2) {
+                    const o1 = oshis[i];
+                    const o2 = oshis[i+1];
+                    
+                    const h1 = await this.renderOshiCardGrid(o1, this.config.paddingX, cursorY, colW, true);
+                    const h2 = o2 ? await this.renderOshiCardGrid(o2, this.config.paddingX + colW + gap, cursorY, colW, true) : 0;
+                    const rowH = Math.max(h1, h2);
+
+                    if(!dryRun) {
+                        await this.renderOshiCardGrid(o1, this.config.paddingX, cursorY, colW, false, rowH);
+                        if(o2) await this.renderOshiCardGrid(o2, this.config.paddingX + colW + gap, cursorY, colW, false, rowH);
+                    }
+                    cursorY += rowH + 30;
+                }
+            }
+            cursorY += 20;
+        }
+
+        return cursorY + 100; // 底部留白
     },
 
-    // --- 推し卡片（垂直居中布局）---
-    drawOshiCard: async function(o, x, y, w, h, isSingle) {
-        this.ctx.save();
-        if (this.config.cardOpacity !== undefined) {
-            this.ctx.globalAlpha = this.config.cardOpacity;
-        }
-        this.drawShadowRect(x, y, w, h);
-        this.ctx.restore();
+    // --- 卡片渲染器 (负责计算和绘制) ---
 
-        this.ctx.save();
-        this.ctx.textAlign = 'center';
+    // 1. 个人资料 (自适应高度)
+    renderProfileCard: async function(u, x, y, w, dryRun) {
+        // 布局参数
+        const avatarSize = 120;
+        const padding = 40;
+        const textStart = x + padding + avatarSize + 30; // 文字绝对不跨过这条线
+        const textW = (x + w) - textStart - padding; // 文字可用宽度
 
-        if (isSingle) {
-            // 单列布局（水平排列）
-            await this.drawCircleImg(o.avatar, x + 30, y + (h-80)/2, 80);
+        // 预计算文字高度
+        this.ctx.font = 'bold 48px ' + this.config.fontFamily;
+        const nameH = 48; 
+        
+        this.ctx.font = '30px ' + this.config.fontFamily;
+        // bioHeight 自动计算行数
+        const bioLines = this.getWrapLines(u.bio, textW); 
+        const bioH = bioLines.length * 42; 
+
+        // 卡片总高度 = 上内边距 + 头像或文字的最大高度 + 下内边距
+        const contentH = Math.max(avatarSize, nameH + 20 + bioH);
+        const cardH = padding + contentH + padding;
+
+        if(!dryRun) {
+            this.drawCardBase(x, y, w, cardH);
+            
+            // 头像垂直居中
+            const avatarY = y + (cardH - avatarSize)/2;
+            await this.drawCircleImg(u.avatar, x + padding, avatarY, avatarSize);
+
+            // 绘制文字
+            let textY = y + padding + 40; // 基线
+            
             this.ctx.textAlign = 'left';
-            this.ctx.fillStyle = '#333';
-            this.ctx.font = this.getFontString('bold', 32);
-            this.ctx.fillText(o.name, x + 130, y + 60);
-            if(o.tags && o.tags.length){
-                let tx = x + 130;
-                o.tags.slice(0, 2).forEach(t => {
-                    this.drawBadge('#'+t, tx, y + 85, '#FFF0F5', '#D63384', 20);
-                    tx += this.ctx.measureText('#'+t).width + 20;
+            this.ctx.fillStyle = this.config.colTitle;
+            this.ctx.font = 'bold 48px ' + this.config.fontFamily;
+            this.ctx.fillText(u.name, textStart, textY);
+
+            textY += 50;
+            this.ctx.fillStyle = this.config.colSub;
+            this.ctx.font = '30px ' + this.config.fontFamily;
+            
+            for(let line of bioLines) {
+                this.ctx.fillText(line, textStart, textY);
+                textY += 42;
+            }
+        }
+        return cardH;
+    },
+
+    // 2. 游戏单列 (左图右文，绝对不重叠)
+    renderGameCardSingle: async function(g, x, y, w, dryRun) {
+        const padding = 30;
+        const coverW = 140;
+        const coverH = 186; // 3:4 比例
+        const textLeft = x + padding + coverW + 30; // 文字起始X
+        const textW = (x + w) - textLeft - padding;
+
+        this.ctx.font = 'bold 36px ' + this.config.fontFamily;
+        const titleLines = this.getWrapLines(g.name, textW);
+        const titleH = titleLines.length * 46;
+
+        const badgeH = 40;
+        const platH = 30;
+
+        // 计算高度：取图片高度 和 文字堆叠高度 的最大值
+        const textTotalH = titleH + 20 + badgeH + 20 + platH;
+        const contentH = Math.max(coverH, textTotalH);
+        const cardH = padding + contentH + padding;
+
+        if(!dryRun) {
+            this.drawCardBase(x, y, w, cardH);
+            
+            // 封面垂直居中
+            const imgY = y + (cardH - coverH)/2;
+            await this.drawRoundedImg(g.cover, x + padding, imgY, coverW, coverH, 12);
+
+            let cursor = y + padding + 36; // 第一行文字基线
+            // 如果文字总高度比图片矮很多，就把文字整体往下移一点，好看
+            if(textTotalH < coverH) cursor += (coverH - textTotalH) / 3;
+
+            this.ctx.fillStyle = this.config.colTitle;
+            this.ctx.font = 'bold 36px ' + this.config.fontFamily;
+            for(let line of titleLines) {
+                this.ctx.fillText(line, textLeft, cursor);
+                cursor += 46;
+            }
+
+            cursor += 10;
+            // 状态标
+            const status = this.getStatusConfig(g.status);
+            this.drawBadge(status.text, textLeft, cursor - 24, status.bg, status.col);
+
+            cursor += 60; // 增加间距，让平台文字更远
+            this.ctx.fillStyle = '#999';
+            this.ctx.font = '26px ' + this.config.fontFamily;
+            this.ctx.fillText(g.platform || '全平台', textLeft, cursor);
+        }
+        return cardH;
+    },
+
+    // 3. 游戏网格 (上图下文)
+    renderGameCardGrid: async function(g, x, y, w, dryRun, fixedHeight) {
+        const coverH = w * 1.33; // 3:4 封面
+        const padding = 24;
+        
+        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+        const titleLines = this.getWrapLines(g.name, w - padding*2);
+        const titleH = titleLines.length * 40;
+
+        // 自然高度
+        const naturalH = coverH + padding + titleH + 20 + 40 + padding;
+        const cardH = fixedHeight || naturalH; // 如果强制指定高度(为了对齐)，就用强制的
+
+        if(!dryRun) {
+            this.drawCardBase(x, y, w, cardH);
+            // 图片占满顶部，切圆角仅上面
+            await this.drawRoundedImg(g.cover, x, y, w, coverH, {tl:20, tr:20, bl:0, br:0});
+
+            let cursor = y + coverH + padding + 24;
+            this.ctx.fillStyle = this.config.colTitle;
+            this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+            for(let line of titleLines) {
+                this.ctx.fillText(line, x + padding, cursor);
+                cursor += 40;
+            }
+
+            cursor += 10;
+            const status = this.getStatusConfig(g.status);
+            this.drawBadge(status.text, x + padding, cursor - 24, status.bg, status.col, 22);
+        }
+        return naturalH;
+    },
+
+    // 4. 推し单列
+    renderOshiCardSingle: async function(o, x, y, w, dryRun) {
+        const padding = 30;
+        const size = 120; // 头像大一点
+        const textLeft = x + padding + size + 30;
+        const textW = (x + w) - textLeft - padding;
+
+        this.ctx.font = 'bold 40px ' + this.config.fontFamily;
+        const nameH = 40;
+        
+        // 标签行
+        const tagH = (o.tags && o.tags.length) ? 40 : 0;
+        
+        const contentH = Math.max(size, nameH + (tagH ? 20 + tagH : 0));
+        const cardH = padding + contentH + padding;
+
+        if(!dryRun) {
+            this.drawCardBase(x, y, w, cardH);
+            const imgY = y + (cardH - size)/2;
+            await this.drawCircleImg(o.avatar, x + padding, imgY, size);
+
+            let cursor = y + padding + 35;
+            // 垂直居中修正
+            if(contentH < size) cursor += (size - contentH)/2;
+
+            this.ctx.fillStyle = this.config.colTitle;
+            this.ctx.font = 'bold 40px ' + this.config.fontFamily;
+            this.ctx.fillText(o.name, textLeft, cursor);
+
+            if(o.tags && o.tags.length) {
+                cursor += 50;
+                let tx = textLeft;
+                o.tags.slice(0, 3).forEach(t => {
+                    const tagText = '#' + t;
+                    const tagWidth = this.ctx.measureText(tagText).width;
+                    // 内边距改为12px，使标签更紧凑
+                    const badgeWidth = tagWidth + 16;
+                    this.drawBadge(tagText, tx, cursor - 24, '#fff0f5', '#d63384', 20);
+                    tx += badgeWidth + 10; // 间距10px
                 });
             }
-        } else {
-            // 双列布局（上图下文，完全居中）
-            const centerX = x + w/2;
-            await this.drawCircleImg(o.avatar, centerX - 40, y + 30, 80);
-            
-            this.ctx.fillStyle = '#333';
-            this.ctx.font = this.getFontString('bold', 22);
-            this.ctx.fillText(o.name, centerX, y + 130);
-            
-            if(o.tags && o.tags.length){
-                let tagStr = o.tags.slice(0, 2).map(t => '#'+t).join(' ');
-                if (this.ctx.measureText(tagStr).width > w - 20) {
-                    tagStr = '#' + o.tags[0];
-                }
-                this.ctx.font = this.getFontString('normal', 16);
-                const tagWidth = this.ctx.measureText(tagStr).width + 20;
-                const tagX = centerX - tagWidth/2;
-                this.ctx.fillStyle = '#FFF0F5';
-                this.roundRect(tagX, y + 145, tagWidth, 26, 13);
-                this.ctx.fill();
-                this.ctx.fillStyle = '#D63384';
-                this.ctx.fillText(tagStr, centerX, y + 164);
-            }
         }
-        this.ctx.restore();
+        return cardH;
     },
 
-    // --- 辅助绘图函数（阴影、圆角、文字）---
-    drawShadowRect: function(x, y, w, h) {
+    // 5. 推し网格
+    renderOshiCardGrid: async function(o, x, y, w, dryRun, fixedHeight) {
+        const padding = 24;
+        const avatarSize = 140;
+        
+        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+        const nameLines = this.getWrapLines(o.name, w - padding*2);
+        const nameH = nameLines.length * 40;
+
+        const naturalH = padding + avatarSize + 20 + nameH + 20 + 30 + padding;
+        const cardH = fixedHeight || naturalH;
+
+        if(!dryRun) {
+            this.drawCardBase(x, y, w, cardH);
+            
+            const centerX = x + w/2;
+            await this.drawCircleImg(o.avatar, centerX - avatarSize/2, y + padding, avatarSize);
+
+            let cursor = y + padding + avatarSize + 40;
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = this.config.colTitle;
+            this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+            
+            for(let line of nameLines) {
+                this.ctx.fillText(line, centerX, cursor);
+                cursor += 40;
+            }
+
+            if(o.tags && o.tags.length) {
+                cursor += 10;
+                // 只显示第一个tag，紧凑显示
+                this.ctx.textAlign = 'left';
+                const tagTxt = '#' + o.tags[0];
+                this.ctx.font = '22px ' + this.config.fontFamily;
+                const tw = this.ctx.measureText(tagTxt).width + 16; // 内边距减小
+                this.drawBadge(tagTxt, centerX - tw/2, cursor - 24, '#fff0f5', '#d63384', 20);
+            }
+            this.ctx.textAlign = 'left';
+        }
+        return naturalH;
+    },
+
+    // --- 核心工具函数 ---
+
+    // 自动换行计算：返回字符串数组
+    getWrapLines: function(text, maxWidth) {
+        if(!text) return [];
+        const words = text.split('');
+        const lines = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            const word = words[i];
+            const width = this.ctx.measureText(currentLine + word).width;
+            if (width < maxWidth) {
+                currentLine += word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        return lines;
+    },
+
+    drawCardBase: function(x, y, w, h) {
         this.ctx.save();
-        this.ctx.fillStyle = '#fff';
+        this.ctx.globalAlpha = this.config.cardOpacity;
         this.ctx.shadowColor = 'rgba(0,0,0,0.04)';
         this.ctx.shadowBlur = 16;
-        this.ctx.shadowOffsetY = 6;
-        this.ctx.shadowOffsetX = 0;
+        this.ctx.shadowOffsetY = 4;
+        this.ctx.fillStyle = '#fff';
         this.roundRect(x, y, w, h, 20);
         this.ctx.fill();
         this.ctx.restore();
     },
 
-    drawBadge: function(text, x, y, bg, color, fontSize = 24) {
+    drawBadge: function(text, x, y, bg, col, size=24) {
         this.ctx.save();
-        this.ctx.font = this.getFontString('normal', fontSize);
-        const w = this.ctx.measureText(text).width + 16;
-        const h = fontSize + 8;
+        this.ctx.font = size + 'px ' + this.config.fontFamily;
+        const w = this.ctx.measureText(text).width + 16; // 减小内边距
+        const h = size + 10; // 高度相应减小
         this.ctx.fillStyle = bg;
-        this.roundRect(x, y, w, h, 12);
+        this.roundRect(x, y, w, h, 8);
         this.ctx.fill();
-        this.ctx.fillStyle = color;
-        this.ctx.font = this.getFontString('normal', fontSize);
-        this.ctx.fillText(text, x + 8, y + fontSize + 2);
+        this.ctx.fillStyle = col;
+        this.ctx.fillText(text, x + 8, y + size + 2);
         this.ctx.restore();
     },
 
     drawSectionTitle: function(text, y) {
         this.ctx.save();
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = this.getFontString('normal', 28);
-        this.ctx.letterSpacing = '2px';
         this.ctx.textAlign = 'center';
+        this.ctx.fillStyle = this.config.titleColor;
+        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+        this.ctx.letterSpacing = '4px';
         this.ctx.fillText(`— ${text} —`, this.canvas.width/2, y + 40);
         this.ctx.restore();
     },
 
-    wrapText: function(text, x, y, maxWidth, lineHeight) {
-        const words = text.split('');
-        let line = '';
-        for(let n = 0; n < words.length; n++) {
-            const testLine = line + words[n];
-            if (this.ctx.measureText(testLine).width > maxWidth && n > 0) {
-                this.ctx.fillText(line, x, y);
-                line = words[n];
-                y += lineHeight;
-            } else {
-                line = testLine;
-            }
-        }
-        this.ctx.fillText(line, x, y);
+    drawCoverBg: function(img, h) {
+        const w = this.canvas.width;
+        const scale = Math.max(w/img.width, h/img.height);
+        const tx = (w - img.width*scale)/2;
+        const ty = (h - img.height*scale)/2;
+        this.ctx.drawImage(img, tx, ty, img.width*scale, img.height*scale);
     },
 
     roundRect: function(x, y, w, h, r) {
-        if(typeof r !== 'object') r = {tl:r, tr:r, br:r, bl:r};
+        if(typeof r === 'number') r = {tl:r, tr:r, br:r, bl:r};
         this.ctx.beginPath();
         this.ctx.moveTo(x + r.tl, y);
         this.ctx.lineTo(x + w - r.tr, y);
@@ -1070,12 +1230,16 @@ const Generator = {
         this.ctx.closePath();
     },
 
+    // 图片加载缓存
+    imgCache: {},
     loadImage: function(src) {
+        if(!src) return Promise.resolve(null);
+        if(this.imgCache[src]) return Promise.resolve(this.imgCache[src]);
+        
         return new Promise(r => {
-            if(!src) return r(null);
             const img = new Image();
             img.crossOrigin = 'Anonymous';
-            img.onload = () => r(img);
+            img.onload = () => { this.imgCache[src] = img; r(img); };
             img.onerror = () => r(null);
             img.src = src;
         });
@@ -1085,13 +1249,13 @@ const Generator = {
         const img = await this.loadImage(src);
         this.ctx.save();
         this.ctx.beginPath();
-        this.ctx.arc(x+size/2, y+size/2, size/2, 0, Math.PI*2);
+        this.ctx.arc(x + size/2, y + size/2, size/2, 0, Math.PI*2);
         this.ctx.clip();
         if(img) this.ctx.drawImage(img, x, y, size, size);
-        else { this.ctx.fillStyle='#eee'; this.ctx.fillRect(x, y, size, size); }
+        else { this.ctx.fillStyle='#eee'; this.ctx.fillRect(x,y,size,size); }
         this.ctx.restore();
     },
-    
+
     drawRoundedImg: async function(src, x, y, w, h, r) {
         const img = await this.loadImage(src);
         this.ctx.save();
@@ -1103,12 +1267,27 @@ const Generator = {
             const ty = (h - img.height*scale)/2;
             this.ctx.drawImage(img, x+tx, y+ty, img.width*scale, img.height*scale);
         } else {
-            this.ctx.fillStyle='#eee';
-            this.ctx.fillRect(x, y, w, h);
+            this.ctx.fillStyle='#eee'; this.ctx.fillRect(x,y,w,h);
         }
         this.ctx.restore();
-    }
+    },
+
+    hexToRgba: (hex, alpha) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    },
+
+    getStatusConfig: (s) => ({
+        'wishlist': {text:'想玩', bg:'#fff8e1', col:'#fbc02d'},
+        'playing': {text:'在玩', bg:'#e0f2f1', col:'#009688'},
+        'finished': {text:'已玩', bg:'#e8f5e9', col:'#4caf50'}
+    }[s] || {text:s, bg:'#eee', col:'#666'})
 };
 
-window.addEventListener('load', () => Generator.init());
-window.onload = () => app.init();
+// 启动
+window.addEventListener('load', () => {
+    app.init();
+    Generator.init();
+});
