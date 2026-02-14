@@ -32,25 +32,14 @@
     </div>
 
     <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="wishlist">
-            <i class="ph ph-star"></i><span>想玩</span>
-        </button>
-        <button class="tab-btn" data-tab="playing">
-            <i class="ph ph-game-controller"></i><span>在玩</span>
-        </button>
-        <button class="tab-btn" data-tab="finished">
-            <i class="ph ph-check-circle"></i><span>已玩</span>
-        </button>
-        <button class="tab-btn" data-tab="library">
-            <i class="ph ph-books"></i><span>游戏库</span>
-        </button>
-        <button class="tab-btn special-tab" data-tab="oshi">
-            <i class="ph ph-heart"></i><span>推し</span>
-        </button>
+        <button class="tab-btn active" data-tab="wishlist"><i class="ph ph-star"></i><span>想玩</span></button>
+        <button class="tab-btn" data-tab="playing"><i class="ph ph-game-controller"></i><span>在玩</span></button>
+        <button class="tab-btn" data-tab="finished"><i class="ph ph-check-circle"></i><span>已玩</span></button>
+        <button class="tab-btn" data-tab="library"><i class="ph ph-books"></i><span>游戏库</span></button>
+        <button class="tab-btn special-tab" data-tab="oshi"><i class="ph ph-heart"></i><span>推し</span></button>
     </nav>
 
-    <main id="app-container" class="content-area">
-        </main>
+    <main id="app-container" class="content-area"></main>
     
     <div id="empty-state-view" class="empty-state" style="display:none;">
         <div class="float-icon-layer">
@@ -63,111 +52,88 @@
     <button id="fab-add" class="fab"><i class="ph ph-plus"></i></button>
     <button id="fab-generator" class="fab-mini"><i class="ph ph-image-square"></i></button>
 
-    <!-- ========== 推图生成器（优化版） ========== -->
     <div id="sheet-generator" class="sheet fullscreen-sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-generator">关闭</button>
-            <h3>分享卡片</h3>
+            <h3>生成推し長図</h3>
             <button class="btn-text save" id="btn-export-image">保存图片</button>
         </div>
 
         <div class="sheet-body generator-body">
-            <!-- 预览区（放大） -->
             <div class="gen-preview-wrapper">
                 <div class="canvas-shadow-box">
                     <canvas id="gen-canvas"></canvas>
                 </div>
-                <p class="gen-tip">预览模式 (导出为高清大图)</p>
             </div>
 
-            <!-- 控制面板（缩小） -->
-            <div class="gen-controls-container">
-                <!-- 展示内容胶囊复选框 -->
-                <div class="control-card">
-                    <div class="card-label">展示内容</div>
-                    <div class="tags-toggle-group">
-                        <label class="toggle-tag">
-                            <input type="checkbox" id="gen-check-profile" checked>
-                            <span>个人资料</span>
-                        </label>
-                        <label class="toggle-tag">
-                            <input type="checkbox" id="gen-check-playing" checked>
-                            <span>在玩</span>
-                        </label>
-                        <label class="toggle-tag">
-                            <input type="checkbox" id="gen-check-finished" checked>
-                            <span>已玩</span>
-                        </label>
-                        <label class="toggle-tag">
-                            <input type="checkbox" id="gen-check-wishlist">
-                            <span>想玩</span>
-                        </label>
-                        <label class="toggle-tag">
-                            <input type="checkbox" id="gen-check-oshi" checked>
-                            <span>推し</span>
-                        </label>
-                    </div>
+            <div class="gen-controls-container" id="gen-controls-container">
+                <div class="drag-handle-zone" id="gen-drag-handle">
+                    <div class="drag-bar"></div>
                 </div>
-
-                <!-- 布局与风格 -->
-                <div class="control-card">
-                    <div class="card-label">布局与风格</div>
-
-                    <!-- 游戏排版模式（独立） -->
-                    <div class="setting-row">
-                        <span>游戏排版</span>
-                        <div class="segment-control" style="width: auto;">
-                            <button class="segment-btn active" data-gamecol="1">列表</button>
-                            <button class="segment-btn" data-gamecol="2">网格</button>
+                
+                <div class="gen-controls-scroll">
+                    <div class="control-card">
+                        <div class="card-label">展示内容</div>
+                        <div class="tags-toggle-group">
+                            <label class="toggle-tag"><input type="checkbox" id="gen-check-profile" checked><span>个人资料</span></label>
+                            <label class="toggle-tag"><input type="checkbox" id="gen-check-playing" checked><span>在玩</span></label>
+                            <label class="toggle-tag"><input type="checkbox" id="gen-check-finished" checked><span>已玩</span></label>
+                            <label class="toggle-tag"><input type="checkbox" id="gen-check-wishlist"><span>想玩</span></label>
+                            <label class="toggle-tag"><input type="checkbox" id="gen-check-oshi" checked><span>推し</span></label>
                         </div>
                     </div>
 
-                    <!-- 推し排版模式（独立） -->
-                    <div class="setting-row">
-                        <span>推し排版</span>
-                        <div class="segment-control" style="width: auto;">
-                            <button class="segment-btn active" data-oshicol="1">列表</button>
-                            <button class="segment-btn" data-oshicol="2">网格</button>
+                    <div class="control-card">
+                        <div class="card-label">布局与排版</div>
+                        <div class="setting-row">
+                            <span>游戏排版</span>
+                            <div class="segment-control">
+                                <button class="segment-btn active" data-type="gamecol" data-val="1">单列</button>
+                                <button class="segment-btn" data-type="gamecol" data-val="2">双列</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>推し排版</span>
+                            <div class="segment-control">
+                                <button class="segment-btn active" data-type="oshicol" data-val="1">单列</button>
+                                <button class="segment-btn" data-type="oshicol" data-val="2">双列</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span>字体样式</span>
+                            <div class="segment-control">
+                                <button class="segment-btn active" data-type="font" data-val="sans-serif">无衬线</button>
+                                <button class="segment-btn" data-type="font" data-val="'Songti SC', 'STSong', serif">衬线体</button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 字体切换（修复宋体） -->
-                    <div class="setting-row">
-                        <span>字体</span>
-                        <div class="segment-control" style="width: auto;">
-                            <button class="segment-btn active" data-font="sans-serif">现代体</button>
-                            <button class="segment-btn" data-font="'Songti SC', '宋体', serif">宋体</button>
+                    <div class="control-card">
+                        <div class="card-label">视觉风格</div>
+                        <div class="setting-row">
+                            <span>背景设置</span>
+                            <div class="bg-actions">
+                                <input type="color" id="gen-bg-color" value="#f4f6f9">
+                                <button class="btn-small-outline" id="btn-gen-bg-img"><i class="ph ph-image"></i> 图片</button>
+                                <button class="btn-small-outline danger" id="btn-gen-reset-bg" style="display:none"><i class="ph ph-trash"></i></button>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- 标题颜色（新增） -->
-                    <div class="setting-row">
-                        <span>标题颜色</span>
-                        <input type="color" id="gen-title-color" value="#b2bec3">
-                    </div>
-
-                    <!-- 背景设置 -->
-                    <div class="setting-row">
-                        <span>背景</span>
-                        <div class="bg-actions">
-                            <input type="color" id="gen-bg-color" value="#faf9fe">
-                            <button class="btn-small-outline" id="btn-gen-bg-img"><i class="ph ph-image"></i> 图片</button>
-                            <button class="btn-small-outline danger" id="btn-gen-reset-bg" style="display:none"><i class="ph ph-trash"></i> 清除</button>
+                        <input type="file" id="gen-bg-input" accept="image/*" hidden>
+                        
+                        <div class="setting-row">
+                            <span>标题颜色</span>
+                            <input type="color" id="gen-title-color" value="#a4b0be">
                         </div>
-                    </div>
-                    <input type="file" id="gen-bg-input" accept="image/*" hidden>
-
-                    <!-- 卡片透明度 -->
-                    <div class="setting-row">
-                        <span>卡片透明度</span>
-                        <input type="range" id="gen-card-opacity" min="0.5" max="1" step="0.05" value="1">
+                        
+                        <div class="setting-row" style="margin-top: 15px;">
+                            <span>卡片透明度</span>
+                            <input type="range" id="gen-card-opacity" min="0.5" max="1" step="0.05" value="1" style="width: 50%;">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- 以下为其他 sheets（保持不变） -->
     <div id="sheet-settings" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-settings">关闭</button>
@@ -207,7 +173,6 @@
         </div>
     </div>
 
-    <!-- 游戏表单 Sheet -->
     <div id="sheet-game-form" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-game-form">取消</button>
@@ -220,10 +185,7 @@
                 <div class="form-section center">
                     <div class="upload-trigger square shadow" id="trigger-game-cover">
                         <img id="preview-game-cover" src="" style="display:none">
-                        <div class="placeholder">
-                            <i class="ph ph-camera"></i>
-                            <span>上传封面</span>
-                        </div>
+                        <div class="placeholder"><i class="ph ph-camera"></i><span>上传封面</span></div>
                     </div>
                 </div>
                 <div class="form-section">
@@ -240,31 +202,21 @@
                 </div>
                 <div class="form-row-2">
                     <div class="form-section half">
-                        <label>游戏平台</label>
-                        <input type="text" id="game-platform" class="input-box" placeholder="Switch/Steam...">
+                        <label>游戏平台</label><input type="text" id="game-platform" class="input-box" placeholder="Switch/Steam...">
                     </div>
                     <div class="form-section half">
-                        <label>入手价格</label>
-                        <input type="number" id="game-price" class="input-box" placeholder="0">
+                        <label>入手价格</label><input type="number" id="game-price" class="input-box" placeholder="0">
                     </div>
                 </div>
                 <div class="form-block">
                     <div class="block-title">时间记录</div>
                     <div class="date-row">
-                        <div class="date-col">
-                            <span class="sub-label">开始</span>
-                            <input type="date" id="game-start-date" class="input-box">
-                        </div>
-                        <div class="date-col">
-                            <span class="sub-label">结束</span>
-                            <input type="date" id="game-end-date" class="input-box">
-                        </div>
+                        <div class="date-col"><span class="sub-label">开始</span><input type="date" id="game-start-date" class="input-box"></div>
+                        <div class="date-col"><span class="sub-label">结束</span><input type="date" id="game-end-date" class="input-box"></div>
                     </div>
                 </div>
                 <div id="quick-oshi-section" class="quick-oshi-card">
-                    <div class="quick-header">
-                        <span><i class="ph ph-heart-straight"></i> 顺便添加推し (可选)</span>
-                    </div>
+                    <div class="quick-header"><span><i class="ph ph-heart-straight"></i> 顺便添加推し (可选)</span></div>
                     <div class="quick-body">
                         <div class="upload-trigger circle small" id="trigger-quick-oshi">
                             <img id="preview-quick-oshi" src="" style="display:none">
@@ -282,7 +234,6 @@
         </div>
     </div>
 
-    <!-- Oshi 表单 Sheet -->
     <div id="sheet-oshi-form" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-oshi-form">取消</button>
@@ -306,9 +257,7 @@
                 <div class="form-section">
                     <label>所属游戏</label>
                     <div class="select-wrapper">
-                        <select id="oshi-game-select" class="input-box">
-                            <option value="">-- 无关联游戏 --</option>
-                        </select>
+                        <select id="oshi-game-select" class="input-box"><option value="">-- 无关联游戏 --</option></select>
                         <i class="ph ph-caret-down"></i>
                     </div>
                 </div>
@@ -328,7 +277,6 @@
         </div>
     </div>
 
-    <!-- 游戏详情 Sheet -->
     <div id="sheet-game-detail" class="sheet detail-sheet">
         <div class="sheet-header transparent">
             <button class="btn-round-back" data-close="sheet-game-detail"><i class="ph ph-arrow-left"></i></button>
@@ -339,9 +287,7 @@
         </div>
         <div class="detail-hero">
             <img id="detail-cover-img" src="">
-            <div class="detail-hero-overlay">
-                <h2 id="detail-game-name"></h2>
-            </div>
+            <div class="detail-hero-overlay"><h2 id="detail-game-name"></h2></div>
         </div>
         <div class="sheet-body detail-content">
             <div class="info-card">
@@ -350,19 +296,12 @@
                     <div class="info-item"><label>状态</label><span id="detail-status">-</span></div>
                     <div class="info-item"><label>价格</label><span id="detail-price">-</span></div>
                 </div>
-                <div class="info-dates-row">
-                    <i class="ph ph-calendar-blank"></i> <span id="detail-dates">-</span>
-                </div>
+                <div class="info-dates-row"><i class="ph ph-calendar-blank"></i> <span id="detail-dates">-</span></div>
             </div>
-
             <div class="info-card">
-                <div class="card-header-row">
-                    <span>💖 角色 (推し)</span>
-                    <button id="btn-add-oshi-from-game" class="btn-xs-outline">添加</button>
-                </div>
+                <div class="card-header-row"><span>💖 角色 (推し)</span><button id="btn-add-oshi-from-game" class="btn-xs-outline">添加</button></div>
                 <div id="detail-related-oshis" class="related-oshi-list"></div>
             </div>
-
             <div class="info-card">
                 <div class="card-header">📝 备注</div>
                 <p id="detail-note-text" class="text-content"></p>
@@ -371,7 +310,6 @@
         </div>
     </div>
 
-    <!-- 推し详情 Sheet -->
     <div id="sheet-oshi-detail" class="sheet detail-sheet">
         <div class="sheet-header">
             <button class="btn-text" data-close="sheet-oshi-detail"><i class="ph ph-arrow-left"></i> 返回</button>
@@ -381,9 +319,7 @@
             </div>
         </div>
         <div class="sheet-body center-layout padded-body">
-            <div class="oshi-hero-container">
-                <img id="oshi-detail-img" src="">
-            </div>
+            <div class="oshi-hero-container"><img id="oshi-detail-img" src=""></div>
             <h2 id="oshi-detail-title"></h2>
             <p id="oshi-detail-game-ref" class="oshi-sub"></p>
             <div id="oshi-detail-tags" class="tags-row-center"></div>
@@ -395,12 +331,9 @@
         </div>
     </div>
 
-    <!-- 裁剪容器 -->
     <div id="cropper-overlay" class="fullscreen-overlay">
         <div class="cropper-center-wrapper">
-            <div class="cropper-container">
-                <img id="cropper-target-img" src="">
-            </div>
+            <div class="cropper-container"><img id="cropper-target-img" src=""></div>
         </div>
         <div class="cropper-toolbar-large">
             <button class="btn-crop-action cancel" id="btn-crop-cancel"><i class="ph ph-x"></i> 取消</button>
@@ -409,7 +342,6 @@
     </div>
 
     <input type="file" id="global-file-input" accept="image/*" hidden>
-
     <script src="app.js"></script>
 </body>
 </html>

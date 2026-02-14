@@ -74,7 +74,6 @@ const app = {
     },
 
     bindEvents: function() {
-        // Tab切换
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const target = e.currentTarget;
@@ -89,7 +88,6 @@ const app = {
             });
         });
 
-        // 库搜索与排序
         document.getElementById('lib-search').addEventListener('input', () => this.render());
         let sortOrder = 'date'; 
         document.getElementById('btn-sort').addEventListener('click', () => {
@@ -99,19 +97,16 @@ const app = {
             this.render(sortOrder);
         });
 
-        // Sheet关闭
         document.querySelectorAll('[data-close]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.getElementById(btn.dataset.close).classList.remove('active');
             });
         });
 
-        // FAB 添加
         document.getElementById('fab-add').addEventListener('click', () => {
             this.currentTab === 'oshi' ? this.openOshiForm() : this.openGameForm();
         });
 
-        // 设置与备份
         document.getElementById('btn-settings').addEventListener('click', () => {
             document.getElementById('sheet-settings').classList.add('active');
         });
@@ -121,6 +116,7 @@ const app = {
             localStorage.setItem('gamnee_avatar', document.getElementById('preview-user-avatar').src);
             alert('设置已保存');
             document.getElementById('sheet-settings').classList.remove('active');
+            if(Generator) Generator.draw(); 
         });
         document.getElementById('btn-backup-export').addEventListener('click', () => this.exportBackup());
         document.getElementById('btn-backup-import-trigger').addEventListener('click', () => {
@@ -130,7 +126,6 @@ const app = {
         });
         document.getElementById('backup-file-input').addEventListener('change', (e) => this.importBackup(e));
 
-        // 状态选择
         document.querySelectorAll('.status-option').forEach(opt => {
             opt.addEventListener('click', () => {
                 document.querySelectorAll('.status-option').forEach(o => o.classList.remove('active'));
@@ -139,7 +134,6 @@ const app = {
             });
         });
 
-        // Tag 输入
         const tagInput = document.getElementById('oshi-tag-input');
         tagInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -153,7 +147,6 @@ const app = {
             }
         });
 
-        // --- 图片裁剪核心 ---
         const globalInput = document.getElementById('global-file-input');
         const setupCrop = (triggerId, imgId) => {
             const el = document.getElementById(triggerId);
@@ -193,11 +186,9 @@ const app = {
         });
         document.getElementById('btn-crop-cancel').addEventListener('click', () => this.closeCropper());
 
-        // 保存实体
         document.getElementById('btn-save-game-trigger').addEventListener('click', () => this.saveGame());
         document.getElementById('btn-save-oshi-trigger').addEventListener('click', () => this.saveOshi());
 
-        // 详情页功能
         document.getElementById('btn-add-oshi-from-game').addEventListener('click', () => {
             const gameName = document.getElementById('detail-game-name').innerText;
             const game = this.data.games.find(g => g.name === gameName);
@@ -360,6 +351,10 @@ const app = {
     openGameForm: function(game = null) {
         const form = document.getElementById('game-form');
         form.reset();
+        
+        // 强制清空隐藏的 ID，防止新增变成覆盖
+        document.getElementById('game-id').value = ''; 
+
         document.getElementById('preview-game-cover').style.display = 'none';
         document.querySelector('#trigger-game-cover .placeholder').style.display = 'flex';
         
@@ -388,7 +383,10 @@ const app = {
             }
             document.getElementById('quick-oshi-section').style.display = 'none';
         } else {
-            document.querySelector('.status-option[data-val="wishlist"]').classList.add('active');
+            // 新增状态，默认选中当前 Tab 对应的状态
+            let defaultStatus = this.currentTab === 'library' || this.currentTab === 'oshi' ? 'wishlist' : this.currentTab;
+            document.querySelector(`.status-option[data-val="${defaultStatus}"]`).classList.add('active');
+            document.getElementById('game-status').value = defaultStatus;
             document.getElementById('quick-oshi-section').style.display = 'block';
         }
         document.getElementById('sheet-game-form').classList.add('active');
@@ -437,6 +435,10 @@ const app = {
     openOshiForm: function(oshi = null, prefillGameId = null) {
         const form = document.getElementById('oshi-form');
         form.reset();
+        
+        // 同理修复
+        document.getElementById('oshi-id').value = '';
+
         document.getElementById('preview-oshi-avatar').style.display = 'none';
         
         const sel = document.getElementById('oshi-game-select');
@@ -543,83 +545,55 @@ const app = {
             this.openOshiForm(o);
         };
         document.getElementById('btn-delete-oshi').onclick = async () => {
-            await db.delete('oshi', o.id);
-            document.getElementById('sheet-oshi-detail').classList.remove('active');
-            await this.loadData();
-            this.render();
+            if(confirm('确定删除推し?')) {
+                await db.delete('oshi', o.id);
+                document.getElementById('sheet-oshi-detail').classList.remove('active');
+                await this.loadData();
+                this.render();
+            }
         };
         document.getElementById('sheet-oshi-detail').classList.add('active');
-    },
-
-    wrapText: function(ctx, text, maxWidth) {
-        return [];
     },
 
     getStatusText: (s) => ({'wishlist':'想玩','playing':'在玩','finished':'已玩'}[s] || s)
 };
 
 // ==========================================
-// [核心重构] 推图生成器 v3.1 (独立排版)
+// [终极重构] 推图生成器 v4.5 (丝滑修复版)
 // ==========================================
 const Generator = {
     canvas: null,
     ctx: null,
-    bgImage: null, // 存储背景图
     
-    // 排版配置
+    // 基础配置
     config: {
-        showProfile: true,
-        showPlaying: true,
-        showFinished: true,
-        showWishlist: false,
-        showOshi: true,
+        showProfile: true, showPlaying: true, showFinished: true, showWishlist: false, showOshi: true,
+        bgColor: '#f4f6f9', bgImage: null, cardOpacity: 1.0,
+        gameColumns: 1, oshiColumns: 1,
         
-        bgColor: '#faf9fe',
-        bgImage: null, // 存储背景图对象
-        cardOpacity: 1.0,
-        
-        // 独立排版模式
-        gameColumns: 1, // 游戏排版：1=列表, 2=网格
-        oshiColumns: 1, // 推し排版：1=列表, 2=网格
-        
-        // 画布基准参数 (高清导出)
-        baseWidth: 750, 
-        paddingX: 40,
-        paddingY: 60,
-        
-        // 字体设置
+        baseWidth: 1080, 
+        paddingX: 50,
+        paddingY: 80, 
         fontFamily: 'sans-serif',
-        
-        // 颜色
-        colTitle: '#2d3436',
-        colSub: '#636e72',
-        colAccent: '#00b894',
-
-        // 新增标题颜色
-        titleColor: '#b2bec3'
+        colTitle: '#2d3436', colSub: '#636e72', titleColor: '#a4b0be'
     },
+    
+    // 防抖定时器
+    _drawTimer: null,
     
     init: function() {
         this.canvas = document.getElementById('gen-canvas');
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d');
         this.bindEvents();
-        // 尝试加载上次的配置
         this.loadConfig();
     },
 
     loadConfig: function() {
-        // 读取本地存储配置，恢复UI状态
-        const saved = localStorage.getItem('gamnee_gen_config_v3');
+        const saved = localStorage.getItem('gamnee_gen_config_v4');
         if(saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // 兼容旧版配置：如果存在旧的columns字段，则同时赋值给gameColumns和oshiColumns
-                if (parsed.columns !== undefined && parsed.gameColumns === undefined) {
-                    parsed.gameColumns = parsed.columns;
-                    parsed.oshiColumns = parsed.columns;
-                }
-                // 排除 bgImage 因为不能存 JSON
                 delete parsed.bgImage; 
                 Object.assign(this.config, parsed);
                 this.syncUI();
@@ -629,571 +603,496 @@ const Generator = {
 
     saveConfig: function() {
         const toSave = {...this.config};
-        delete toSave.bgImage; // 不存图片对象
-        localStorage.setItem('gamnee_gen_config_v3', JSON.stringify(toSave));
+        delete toSave.bgImage; 
+        localStorage.setItem('gamnee_gen_config_v4', JSON.stringify(toSave));
     },
 
     syncUI: function() {
-        const setCheck = (id, val) => {
-            const el = document.getElementById(id);
-            if(el) el.checked = val;
-        };
+        const setCheck = (id, val) => { const el = document.getElementById(id); if(el) el.checked = val; };
         setCheck('gen-check-profile', this.config.showProfile);
         setCheck('gen-check-playing', this.config.showPlaying);
         setCheck('gen-check-finished', this.config.showFinished);
         setCheck('gen-check-wishlist', this.config.showWishlist);
         setCheck('gen-check-oshi', this.config.showOshi);
 
-        const colorPicker = document.getElementById('gen-bg-color');
-        if(colorPicker) colorPicker.value = this.config.bgColor;
-
-        const titleColorPicker = document.getElementById('gen-title-color');
-        if(titleColorPicker) titleColorPicker.value = this.config.titleColor;
-
-        const opacitySlider = document.getElementById('gen-card-opacity');
-        if(opacitySlider) opacitySlider.value = this.config.cardOpacity;
+        if(document.getElementById('gen-bg-color')) document.getElementById('gen-bg-color').value = this.config.bgColor;
+        if(document.getElementById('gen-title-color')) document.getElementById('gen-title-color').value = this.config.titleColor;
+        if(document.getElementById('gen-card-opacity')) document.getElementById('gen-card-opacity').value = this.config.cardOpacity;
         
-        // 恢复游戏排版按钮状态
-        const gameColBtns = document.querySelectorAll('.segment-btn[data-gamecol]');
-        gameColBtns.forEach(btn => {
-            if(parseInt(btn.dataset.gamecol) === this.config.gameColumns) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-
-        // 恢复推し排版按钮状态
-        const oshiColBtns = document.querySelectorAll('.segment-btn[data-oshicol]');
-        oshiColBtns.forEach(btn => {
-            if(parseInt(btn.dataset.oshicol) === this.config.oshiColumns) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-
-        // 恢复字体按钮
-        const fontBtns = document.querySelectorAll('.segment-btn[data-font]');
-        fontBtns.forEach(btn => {
-            if (btn.dataset.font === this.config.fontFamily) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
+        const syncSegment = (selector, val) => {
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.val == val);
+            });
+        };
+        syncSegment('.segment-btn[data-type="gamecol"]', this.config.gameColumns);
+        syncSegment('.segment-btn[data-type="oshicol"]', this.config.oshiColumns);
+        syncSegment('.segment-btn[data-type="font"]', this.config.fontFamily);
 
         const resetBgBtn = document.getElementById('btn-gen-reset-bg');
-        if(resetBgBtn) resetBgBtn.style.display = this.config.bgImage ? 'block' : 'none';
+        if(resetBgBtn) resetBgBtn.style.display = this.config.bgImage ? 'inline-flex' : 'none';
     },
 
     bindEvents: function() {
-        // 1. 打开入口
+        // --- 1. 拖拽面板手势控制（增加活动状态检查和阻止滚动）---
+        const container = document.getElementById('gen-controls-container');
+        const handle = document.getElementById('gen-drag-handle');
+        const sheet = document.getElementById('sheet-generator');
+        let startY = 0;
+        let startHeight = 0;
+        let isDragging = false;
+
+        const isGeneratorActive = () => sheet && sheet.classList.contains('active');
+
+        const onDragStart = (e) => {
+            if (!isGeneratorActive()) return;
+            isDragging = true;
+            startY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            startHeight = container.getBoundingClientRect().height;
+            container.style.transition = 'none';
+            document.body.style.userSelect = 'none';
+        };
+
+        const onDragMove = (e) => {
+            if (!isDragging || !isGeneratorActive()) return;
+            // 阻止页面滚动
+            if (e.cancelable) e.preventDefault();
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            const deltaY = startY - clientY; // 往上滑为正
+            let newHeight = startHeight + deltaY;
+            // 限制在 min/max 之间（vh换算）
+            const vh = (newHeight / window.innerHeight) * 100;
+            if (vh < 15) newHeight = window.innerHeight * 0.15;
+            if (vh > 85) newHeight = window.innerHeight * 0.85;
+            container.style.height = `${newHeight}px`;
+        };
+
+        const onDragEnd = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            container.style.transition = 'height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            document.body.style.userSelect = '';
+        };
+
+        if (handle && container) {
+            // 使用被动监听启动，但移动时主动调用 preventDefault
+            handle.addEventListener('touchstart', onDragStart, { passive: true });
+            handle.addEventListener('mousedown', onDragStart);
+            document.addEventListener('touchmove', onDragMove, { passive: false });
+            document.addEventListener('mousemove', onDragMove);
+            document.addEventListener('touchend', onDragEnd);
+            document.addEventListener('mouseup', onDragEnd);
+        }
+
+        // --- 2. 传统表单交互绑定（使用 requestAnimationFrame 防抖）---
         const fab = document.getElementById('fab-generator');
         if(fab) fab.onclick = () => {
             document.getElementById('sheet-generator').classList.add('active');
-            this.draw(); // 打开即生成
+            this.draw(); 
         };
 
+        // 防抖刷新
         const refresh = () => {
-            this.saveConfig();
-            this.draw();
+            if (this._drawTimer) cancelAnimationFrame(this._drawTimer);
+            this._drawTimer = requestAnimationFrame(() => {
+                this.saveConfig();
+                this.draw();
+            });
         };
 
-        // 2. 绑定复选框
         ['profile','playing','finished','wishlist','oshi'].forEach(key => {
             const el = document.getElementById(`gen-check-${key}`);
-            if(el) el.onchange = (e) => {
-                this.config['show'+key.charAt(0).toUpperCase()+key.slice(1)] = e.target.checked;
-                refresh();
-            };
+            if(el) el.onchange = (e) => { this.config['show'+key.charAt(0).toUpperCase()+key.slice(1)] = e.target.checked; refresh(); };
         });
 
-        // 3. 外观设置
-        const bgPicker = document.getElementById('gen-bg-color');
-        if(bgPicker) bgPicker.oninput = (e) => {
+        const bgColor = document.getElementById('gen-bg-color');
+        if(bgColor) bgColor.oninput = (e) => {
             this.config.bgColor = e.target.value;
-            this.config.bgImage = null; // 颜色覆盖图片
-            const resetBtn = document.getElementById('btn-gen-reset-bg');
-            if(resetBtn) resetBtn.style.display = 'none';
+            this.config.bgImage = null; 
+            document.getElementById('btn-gen-reset-bg').style.display = 'none';
             refresh();
         };
 
-        const titleColorPicker = document.getElementById('gen-title-color');
-        if(titleColorPicker) titleColorPicker.oninput = (e) => {
-            this.config.titleColor = e.target.value;
-            refresh();
-        };
+        const titleColor = document.getElementById('gen-title-color');
+        if(titleColor) titleColor.oninput = (e) => { this.config.titleColor = e.target.value; refresh(); };
 
         const opacityRange = document.getElementById('gen-card-opacity');
-        if(opacityRange) opacityRange.oninput = (e) => {
-            this.config.cardOpacity = parseFloat(e.target.value);
-            refresh();
+        if(opacityRange) opacityRange.oninput = (e) => { this.config.cardOpacity = parseFloat(e.target.value); refresh(); };
+
+        const bindSegment = (selector, key, parser = v=>v) => {
+            const btns = document.querySelectorAll(selector);
+            btns.forEach(btn => {
+                btn.onclick = (e) => {
+                    btns.forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    this.config[key] = parser(e.target.dataset.val);
+                    refresh();
+                };
+            });
         };
+        bindSegment('.segment-btn[data-type="gamecol"]', 'gameColumns', parseInt);
+        bindSegment('.segment-btn[data-type="oshicol"]', 'oshiColumns', parseInt);
+        bindSegment('.segment-btn[data-type="font"]', 'fontFamily');
 
-        // 游戏排版切换
-        const gameColBtns = document.querySelectorAll('.segment-btn[data-gamecol]');
-        gameColBtns.forEach(btn => {
-            btn.onclick = (e) => {
-                gameColBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.config.gameColumns = parseInt(e.target.dataset.gamecol);
-                refresh();
-            };
-        });
-
-        // 推し排版切换
-        const oshiColBtns = document.querySelectorAll('.segment-btn[data-oshicol]');
-        oshiColBtns.forEach(btn => {
-            btn.onclick = (e) => {
-                oshiColBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.config.oshiColumns = parseInt(e.target.dataset.oshicol);
-                refresh();
-            };
-        });
-
-        // 字体切换（使用通用名称）
-        const fontBtns = document.querySelectorAll('.segment-btn[data-font]');
-        fontBtns.forEach(btn => {
-            btn.onclick = (e) => {
-                fontBtns.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.config.fontFamily = e.target.dataset.font;
-                refresh();
-            };
-        });
-
-        // 4. 背景图上传
         const bgBtn = document.getElementById('btn-gen-bg-img');
         const bgInput = document.getElementById('gen-bg-input');
         const bgReset = document.getElementById('btn-gen-reset-bg');
 
         if(bgBtn) bgBtn.onclick = () => bgInput.click();
         if(bgInput) bgInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if(file) {
+            if(e.target.files[0]) {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const img = new Image();
-                    img.onload = () => {
-                        this.config.bgImage = img;
-                        if(bgReset) bgReset.style.display = 'inline-flex';
-                        refresh();
+                    img.onload = () => { 
+                        this.config.bgImage = img; 
+                        if(bgReset) bgReset.style.display = 'inline-flex'; 
+                        refresh(); 
                     };
                     img.src = ev.target.result;
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(e.target.files[0]);
             }
+            bgInput.value = ''; 
         };
         if(bgReset) bgReset.onclick = () => {
-            this.config.bgImage = null;
-            bgReset.style.display = 'none';
+            this.config.bgImage = null; 
+            bgReset.style.display = 'none'; 
             refresh();
         };
 
-        // 5. 导出
         const exportBtn = document.getElementById('btn-export-image');
         if(exportBtn) exportBtn.onclick = () => {
             const link = document.createElement('a');
             link.download = `Gamnee_Share_${Date.now()}.png`;
-            link.href = this.canvas.toDataURL('image/png', 1.0); // 最高质量
+            link.href = this.canvas.toDataURL('image/png', 1.0); 
             link.click();
         };
     },
 
-    // --- 核心绘制流程 ---
+    // --- 渲染引擎 ---
     draw: async function() {
         const user = {
             name: localStorage.getItem('gamnee_username') || 'Gamnée 玩家',
-            bio: localStorage.getItem('gamnee_bio') || '暂无简介',
+            bio: localStorage.getItem('gamnee_bio') || '这名玩家很懒，什么也没写。',
             avatar: localStorage.getItem('gamnee_avatar') || ''
         };
 
-        // 筛选数据
         const games = (app.data.games || []).filter(g => {
             if(g.status === 'playing' && this.config.showPlaying) return true;
             if(g.status === 'finished' && this.config.showFinished) return true;
             if(g.status === 'wishlist' && this.config.showWishlist) return true;
             return false;
         });
-
         const oshis = this.config.showOshi ? (app.data.oshi || []) : [];
 
-        // == 第一步：计算总高度 (虚拟排版) ==
-        // 我们不实际画，只是跑一遍逻辑看看需要多高
+        // 1. 获取动态高度 (干跑)
         const totalHeight = await this.layoutEngine(user, games, oshis, true);
 
-        // == 第二步：设置画布 ==
+        // 2. 设置画布真实像素
         this.canvas.width = this.config.baseWidth;
         this.canvas.height = totalHeight;
         
-        // 绘制背景：如果有背景图片则只绘制图片，否则绘制纯色
+        // 背景绘制
         if(this.config.bgImage) {
             this.drawCoverBg(this.config.bgImage, totalHeight);
-            // 不再叠加颜色蒙版，确保背景图片完全可见
         } else {
             this.ctx.fillStyle = this.config.bgColor;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
 
-        // == 第三步：实际绘制 ==
+        // 3. 真实渲染
         await this.layoutEngine(user, games, oshis, false);
 
-        // Footer
+        // 底部水印
         this.ctx.fillStyle = '#b2bec3';
-        this.ctx.font = '500 24px ' + this.config.fontFamily;
+        this.ctx.font = '500 28px ' + this.config.fontFamily;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Generated by Gamnée', this.canvas.width/2, totalHeight - 40);
+        this.ctx.fillText('Generated by Gamnée PWA', this.canvas.width/2, totalHeight - 40);
     },
 
-    // --- 智能排版引擎 (核心) ---
-    // dryRun = true 时只返回高度，不画
     layoutEngine: async function(user, games, oshis, dryRun) {
         let cursorY = this.config.paddingY;
         const contentW = this.config.baseWidth - (this.config.paddingX * 2);
+        const CARD_GAP = 40; // 卡片间距
 
-        // 1. 个人资料卡片
+        // 1. Profile
         if(this.config.showProfile) {
             const h = await this.renderProfileCard(user, this.config.paddingX, cursorY, contentW, dryRun);
-            cursorY += h + 40; // 卡片间距
+            cursorY += h + 60; 
         }
 
-        // 2. 游戏列表（使用游戏独立排版）
+        // 2. Games
         if(games.length > 0) {
-            if(!dryRun) this.drawSectionTitle('GAME RECORDS', cursorY);
-            cursorY += 80;
+            if(!dryRun) this.drawSectionTitle('GAME RECORD', cursorY);
+            cursorY += 100;
 
             if(this.config.gameColumns === 1) {
-                // 单列模式
                 for(let g of games) {
                     const h = await this.renderGameCardSingle(g, this.config.paddingX, cursorY, contentW, dryRun);
-                    cursorY += h + 30;
+                    cursorY += h + CARD_GAP;
                 }
             } else {
-                // 双列模式
-                const gap = 30;
-                const colW = (contentW - gap) / 2;
+                const colGap = 40;
+                const colW = (contentW - colGap) / 2;
                 for(let i=0; i<games.length; i+=2) {
-                    const g1 = games[i];
-                    const g2 = games[i+1];
-                    
-                    // 并行计算两个卡片的高度，取最大值作为行高
-                    const h1 = await this.renderGameCardGrid(g1, this.config.paddingX, cursorY, colW, true);
-                    const h2 = g2 ? await this.renderGameCardGrid(g2, this.config.paddingX + colW + gap, cursorY, colW, true) : 0;
-                    
+                    const h1 = await this.renderGameCardGrid(games[i], this.config.paddingX, cursorY, colW, true);
+                    const h2 = games[i+1] ? await this.renderGameCardGrid(games[i+1], 0, 0, colW, true) : 0;
                     const rowH = Math.max(h1, h2);
 
                     if(!dryRun) {
-                        await this.renderGameCardGrid(g1, this.config.paddingX, cursorY, colW, false, rowH);
-                        if(g2) await this.renderGameCardGrid(g2, this.config.paddingX + colW + gap, cursorY, colW, false, rowH);
+                        await this.renderGameCardGrid(games[i], this.config.paddingX, cursorY, colW, false, rowH);
+                        if(games[i+1]) await this.renderGameCardGrid(games[i+1], this.config.paddingX + colW + colGap, cursorY, colW, false, rowH);
                     }
-                    cursorY += rowH + 30;
+                    cursorY += rowH + CARD_GAP;
                 }
             }
-            cursorY += 20;
+            cursorY += 40;
         }
 
-        // 3. 推し列表（使用推し独立排版）
+        // 3. Oshi
         if(oshis.length > 0) {
             if(!dryRun) this.drawSectionTitle('MY OSHI', cursorY);
-            cursorY += 80;
+            cursorY += 100;
 
             if(this.config.oshiColumns === 1) {
                 for(let o of oshis) {
                     const h = await this.renderOshiCardSingle(o, this.config.paddingX, cursorY, contentW, dryRun);
-                    cursorY += h + 30;
+                    cursorY += h + CARD_GAP;
                 }
             } else {
-                const gap = 30;
-                const colW = (contentW - gap) / 2;
+                const colGap = 40;
+                const colW = (contentW - colGap) / 2;
                 for(let i=0; i<oshis.length; i+=2) {
-                    const o1 = oshis[i];
-                    const o2 = oshis[i+1];
-                    
-                    const h1 = await this.renderOshiCardGrid(o1, this.config.paddingX, cursorY, colW, true);
-                    const h2 = o2 ? await this.renderOshiCardGrid(o2, this.config.paddingX + colW + gap, cursorY, colW, true) : 0;
+                    const h1 = await this.renderOshiCardGrid(oshis[i], this.config.paddingX, cursorY, colW, true);
+                    const h2 = oshis[i+1] ? await this.renderOshiCardGrid(oshis[i+1], 0, 0, colW, true) : 0;
                     const rowH = Math.max(h1, h2);
 
                     if(!dryRun) {
-                        await this.renderOshiCardGrid(o1, this.config.paddingX, cursorY, colW, false, rowH);
-                        if(o2) await this.renderOshiCardGrid(o2, this.config.paddingX + colW + gap, cursorY, colW, false, rowH);
+                        await this.renderOshiCardGrid(oshis[i], this.config.paddingX, cursorY, colW, false, rowH);
+                        if(oshis[i+1]) await this.renderOshiCardGrid(oshis[i+1], this.config.paddingX + colW + colGap, cursorY, colW, false, rowH);
                     }
-                    cursorY += rowH + 30;
+                    cursorY += rowH + CARD_GAP;
                 }
             }
-            cursorY += 20;
         }
 
-        return cursorY + 100; // 底部留白
+        return cursorY + 120; // 底部留白
     },
 
-    // --- 卡片渲染器 (负责计算和绘制) ---
+    // --- 组件绘制 (优化阴影与圆角参数) ---
 
-    // 1. 个人资料 (自适应高度)
     renderProfileCard: async function(u, x, y, w, dryRun) {
-        // 布局参数
-        const avatarSize = 120;
-        const padding = 40;
-        const textStart = x + padding + avatarSize + 30; // 文字绝对不跨过这条线
-        const textW = (x + w) - textStart - padding; // 文字可用宽度
+        const pad = 50;
+        const avatarSize = 160;
+        const textX = x + pad + avatarSize + 40;
+        const textW = w - (textX - x) - pad;
 
-        // 预计算文字高度
-        this.ctx.font = 'bold 48px ' + this.config.fontFamily;
-        const nameH = 48; 
+        this.ctx.font = `bold 60px ${this.config.fontFamily}`;
+        const nameH = 60; 
         
-        this.ctx.font = '30px ' + this.config.fontFamily;
-        // bioHeight 自动计算行数
+        this.ctx.font = `36px ${this.config.fontFamily}`;
         const bioLines = this.getWrapLines(u.bio, textW); 
-        const bioH = bioLines.length * 42; 
+        const bioH = bioLines.length * 52; 
 
-        // 卡片总高度 = 上内边距 + 头像或文字的最大高度 + 下内边距
         const contentH = Math.max(avatarSize, nameH + 20 + bioH);
-        const cardH = padding + contentH + padding;
+        const cardH = pad + contentH + pad;
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            
-            // 头像垂直居中
-            const avatarY = y + (cardH - avatarSize)/2;
-            await this.drawCircleImg(u.avatar, x + padding, avatarY, avatarSize);
+            await this.drawCircleImg(u.avatar, x + pad, y + (cardH-avatarSize)/2, avatarSize);
 
-            // 绘制文字
-            let textY = y + padding + 40; // 基线
-            
+            let tY = y + pad + 55;
+            if (contentH < avatarSize) tY += (avatarSize - contentH) / 2; // 文字太少时垂直居中对齐头像
+
             this.ctx.textAlign = 'left';
             this.ctx.fillStyle = this.config.colTitle;
-            this.ctx.font = 'bold 48px ' + this.config.fontFamily;
-            this.ctx.fillText(u.name, textStart, textY);
+            this.ctx.font = `bold 60px ${this.config.fontFamily}`;
+            this.ctx.fillText(u.name, textX, tY);
 
-            textY += 50;
+            tY += 65;
             this.ctx.fillStyle = this.config.colSub;
-            this.ctx.font = '30px ' + this.config.fontFamily;
-            
+            this.ctx.font = `36px ${this.config.fontFamily}`;
             for(let line of bioLines) {
-                this.ctx.fillText(line, textStart, textY);
-                textY += 42;
+                this.ctx.fillText(line, textX, tY);
+                tY += 52;
             }
         }
         return cardH;
     },
 
-    // 2. 游戏单列 (左图右文，绝对不重叠)
     renderGameCardSingle: async function(g, x, y, w, dryRun) {
-        const padding = 30;
-        const coverW = 140;
-        const coverH = 186; // 3:4 比例
-        const textLeft = x + padding + coverW + 30; // 文字起始X
-        const textW = (x + w) - textLeft - padding;
+        const pad = 40;
+        const coverW = 200, coverH = 266; 
+        const textX = x + pad + coverW + 40; 
+        const textW = w - (textX - x) - pad;
 
-        this.ctx.font = 'bold 36px ' + this.config.fontFamily;
+        this.ctx.font = `bold 48px ${this.config.fontFamily}`;
         const titleLines = this.getWrapLines(g.name, textW);
-        const titleH = titleLines.length * 46;
+        const titleH = titleLines.length * 60;
 
-        const badgeH = 40;
-        const platH = 30;
-
-        // 计算高度：取图片高度 和 文字堆叠高度 的最大值
-        const textTotalH = titleH + 20 + badgeH + 20 + platH;
-        const contentH = Math.max(coverH, textTotalH);
-        const cardH = padding + contentH + padding;
+        const textTotalH = titleH + 20 + 44 + 30 + 34; // 标题 + 间距 + Badge + 间距 + 平台
+        const cardH = pad + Math.max(coverH, textTotalH) + pad;
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            
-            // 封面垂直居中
-            const imgY = y + (cardH - coverH)/2;
-            await this.drawRoundedImg(g.cover, x + padding, imgY, coverW, coverH, 12);
+            await this.drawRoundedImg(g.cover, x + pad, y + (cardH-coverH)/2, coverW, coverH, 20);
 
-            let cursor = y + padding + 36; // 第一行文字基线
-            // 如果文字总高度比图片矮很多，就把文字整体往下移一点，好看
-            if(textTotalH < coverH) cursor += (coverH - textTotalH) / 3;
+            let tY = y + pad + 45;
+            if(textTotalH < coverH) tY += (coverH - textTotalH)/3;
 
             this.ctx.fillStyle = this.config.colTitle;
-            this.ctx.font = 'bold 36px ' + this.config.fontFamily;
-            for(let line of titleLines) {
-                this.ctx.fillText(line, textLeft, cursor);
-                cursor += 46;
-            }
+            this.ctx.font = `bold 48px ${this.config.fontFamily}`;
+            for(let line of titleLines) { this.ctx.fillText(line, textX, tY); tY += 60; }
 
-            cursor += 10;
-            // 状态标
-            const status = this.getStatusConfig(g.status);
-            this.drawBadge(status.text, textLeft, cursor - 24, status.bg, status.col);
+            tY += 15;
+            const s = this.getStatusConfig(g.status);
+            this.drawBadge(s.text, textX, tY - 34, s.bg, s.col, 30);
 
-            cursor += 60; // 增加间距，让平台文字更远
-            this.ctx.fillStyle = '#999';
-            this.ctx.font = '26px ' + this.config.fontFamily;
-            this.ctx.fillText(g.platform || '全平台', textLeft, cursor);
+            tY += 80;
+            this.ctx.fillStyle = '#a4b0be';
+            this.ctx.font = `32px ${this.config.fontFamily}`;
+            this.ctx.fillText(g.platform || '全平台', textX, tY);
         }
         return cardH;
     },
 
-    // 3. 游戏网格 (上图下文)
     renderGameCardGrid: async function(g, x, y, w, dryRun, fixedHeight) {
-        const coverH = w * 1.33; // 3:4 封面
-        const padding = 24;
+        const coverH = w * 1.33; 
+        const pad = 36;
         
-        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
-        const titleLines = this.getWrapLines(g.name, w - padding*2);
-        const titleH = titleLines.length * 40;
-
-        // 自然高度
-        const naturalH = coverH + padding + titleH + 20 + 40 + padding;
-        const cardH = fixedHeight || naturalH; // 如果强制指定高度(为了对齐)，就用强制的
+        this.ctx.font = `bold 42px ${this.config.fontFamily}`;
+        const titleLines = this.getWrapLines(g.name, w - pad*2);
+        
+        const cardH = fixedHeight || (coverH + pad + (titleLines.length * 52) + 20 + 44 + pad);
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            // 图片占满顶部，切圆角仅上面
-            await this.drawRoundedImg(g.cover, x, y, w, coverH, {tl:20, tr:20, bl:0, br:0});
+            await this.drawRoundedImg(g.cover, x, y, w, coverH, {tl:36, tr:36, bl:0, br:0}); // 网格上边圆角贴合大卡片
 
-            let cursor = y + coverH + padding + 24;
+            let tY = y + coverH + pad + 38;
             this.ctx.fillStyle = this.config.colTitle;
-            this.ctx.font = 'bold 32px ' + this.config.fontFamily;
-            for(let line of titleLines) {
-                this.ctx.fillText(line, x + padding, cursor);
-                cursor += 40;
-            }
+            this.ctx.font = `bold 42px ${this.config.fontFamily}`;
+            for(let line of titleLines) { this.ctx.fillText(line, x + pad, tY); tY += 52; }
 
-            cursor += 10;
-            const status = this.getStatusConfig(g.status);
-            this.drawBadge(status.text, x + padding, cursor - 24, status.bg, status.col, 22);
+            const s = this.getStatusConfig(g.status);
+            this.drawBadge(s.text, x + pad, tY - 20, s.bg, s.col, 28);
         }
-        return naturalH;
+        return cardH;
     },
 
-    // 4. 推し单列
     renderOshiCardSingle: async function(o, x, y, w, dryRun) {
-        const padding = 30;
-        const size = 120; // 头像大一点
-        const textLeft = x + padding + size + 30;
-        const textW = (x + w) - textLeft - padding;
+        const pad = 40;
+        const size = 180; 
+        const textX = x + pad + size + 40;
+        const textW = w - (textX - x) - pad;
 
-        this.ctx.font = 'bold 40px ' + this.config.fontFamily;
-        const nameH = 40;
+        this.ctx.font = `bold 52px ${this.config.fontFamily}`;
+        const hasTag = o.tags && o.tags.length > 0;
+        const textTotalH = 52 + (hasTag ? 30 + 40 : 0);
         
-        // 标签行
-        const tagH = (o.tags && o.tags.length) ? 40 : 0;
-        
-        const contentH = Math.max(size, nameH + (tagH ? 20 + tagH : 0));
-        const cardH = padding + contentH + padding;
+        const cardH = pad + Math.max(size, textTotalH) + pad;
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            const imgY = y + (cardH - size)/2;
-            await this.drawCircleImg(o.avatar, x + padding, imgY, size);
+            await this.drawCircleImg(o.avatar, x + pad, y + (cardH-size)/2, size);
 
-            let cursor = y + padding + 35;
-            // 垂直居中修正
-            if(contentH < size) cursor += (size - contentH)/2;
+            let tY = y + pad + 60;
+            if(textTotalH < size) tY += (size - textTotalH)/2;
 
             this.ctx.fillStyle = this.config.colTitle;
-            this.ctx.font = 'bold 40px ' + this.config.fontFamily;
-            this.ctx.fillText(o.name, textLeft, cursor);
+            this.ctx.font = `bold 52px ${this.config.fontFamily}`;
+            this.ctx.fillText(o.name, textX, tY);
 
-            if(o.tags && o.tags.length) {
-                cursor += 50;
-                let tx = textLeft;
+            if(hasTag) {
+                tY += 65;
+                let tx = textX;
                 o.tags.slice(0, 3).forEach(t => {
-                    const tagText = '#' + t;
-                    const tagWidth = this.ctx.measureText(tagText).width;
-                    // 内边距改为12px，使标签更紧凑
-                    const badgeWidth = tagWidth + 16;
-                    this.drawBadge(tagText, tx, cursor - 24, '#fff0f5', '#d63384', 20);
-                    tx += badgeWidth + 10; // 间距10px
+                    const tagTxt = '#' + t;
+                    const tagW = this.ctx.measureText(tagTxt).width;
+                    this.drawBadge(tagTxt, tx, tY - 32, '#fff0f5', '#d63384', 28);
+                    tx += tagW + 36 + 16;
                 });
             }
         }
         return cardH;
     },
 
-    // 5. 推し网格
     renderOshiCardGrid: async function(o, x, y, w, dryRun, fixedHeight) {
-        const padding = 24;
-        const avatarSize = 140;
+        const pad = 36;
+        const size = 200;
         
-        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
-        const nameLines = this.getWrapLines(o.name, w - padding*2);
-        const nameH = nameLines.length * 40;
+        this.ctx.font = `bold 42px ${this.config.fontFamily}`;
+        const nameLines = this.getWrapLines(o.name, w - pad*2);
+        const hasTag = o.tags && o.tags.length > 0;
 
-        const naturalH = padding + avatarSize + 20 + nameH + 20 + 30 + padding;
-        const cardH = fixedHeight || naturalH;
+        const cardH = fixedHeight || (pad + size + 30 + (nameLines.length*52) + (hasTag ? 20 + 40 : 0) + pad);
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            
-            const centerX = x + w/2;
-            await this.drawCircleImg(o.avatar, centerX - avatarSize/2, y + padding, avatarSize);
+            const cx = x + w/2;
+            await this.drawCircleImg(o.avatar, cx - size/2, y + pad, size);
 
-            let cursor = y + padding + avatarSize + 40;
+            let tY = y + pad + size + 50;
             this.ctx.textAlign = 'center';
             this.ctx.fillStyle = this.config.colTitle;
-            this.ctx.font = 'bold 32px ' + this.config.fontFamily;
+            this.ctx.font = `bold 42px ${this.config.fontFamily}`;
             
-            for(let line of nameLines) {
-                this.ctx.fillText(line, centerX, cursor);
-                cursor += 40;
-            }
+            for(let line of nameLines) { this.ctx.fillText(line, cx, tY); tY += 52; }
 
-            if(o.tags && o.tags.length) {
-                cursor += 10;
-                // 只显示第一个tag，紧凑显示
+            if(hasTag) {
+                tY += 15;
                 this.ctx.textAlign = 'left';
                 const tagTxt = '#' + o.tags[0];
-                this.ctx.font = '22px ' + this.config.fontFamily;
-                const tw = this.ctx.measureText(tagTxt).width + 16; // 内边距减小
-                this.drawBadge(tagTxt, centerX - tw/2, cursor - 24, '#fff0f5', '#d63384', 20);
+                this.ctx.font = `26px ${this.config.fontFamily}`;
+                const tw = this.ctx.measureText(tagTxt).width + 32;
+                this.drawBadge(tagTxt, cx - tw/2, tY - 30, '#fff0f5', '#d63384', 26);
             }
             this.ctx.textAlign = 'left';
         }
-        return naturalH;
+        return cardH;
     },
 
-    // --- 核心工具函数 ---
+    // --- 绘图引擎工具库 ---
 
-    // 自动换行计算：返回字符串数组
     getWrapLines: function(text, maxWidth) {
         if(!text) return [];
-        const words = text.split('');
+        const chars = text.split('');
         const lines = [];
-        let currentLine = words[0];
-
-        for (let i = 1; i < words.length; i++) {
-            const word = words[i];
-            const width = this.ctx.measureText(currentLine + word).width;
-            if (width < maxWidth) {
-                currentLine += word;
-            } else {
-                lines.push(currentLine);
-                currentLine = word;
-            }
+        let cur = '';
+        for (let i = 0; i < chars.length; i++) {
+            const test = cur + chars[i];
+            if (this.ctx.measureText(test).width > maxWidth && cur.length > 0) {
+                lines.push(cur);
+                cur = chars[i];
+            } else { cur = test; }
         }
-        lines.push(currentLine);
+        if (cur) lines.push(cur);
         return lines;
     },
 
     drawCardBase: function(x, y, w, h) {
         this.ctx.save();
         this.ctx.globalAlpha = this.config.cardOpacity;
-        this.ctx.shadowColor = 'rgba(0,0,0,0.04)';
-        this.ctx.shadowBlur = 16;
-        this.ctx.shadowOffsetY = 4;
+        // 高级弥散阴影（更柔和）
+        this.ctx.shadowColor = 'rgba(0,0,0,0.08)'; 
+        this.ctx.shadowBlur = 24;
+        this.ctx.shadowOffsetY = 8;
         this.ctx.fillStyle = '#fff';
-        this.roundRect(x, y, w, h, 20);
+        this.roundRect(x, y, w, h, 28); // 统一圆角28px
         this.ctx.fill();
         this.ctx.restore();
     },
 
-    drawBadge: function(text, x, y, bg, col, size=24) {
+    drawBadge: function(text, x, y, bg, col, size=28) {
         this.ctx.save();
-        this.ctx.font = size + 'px ' + this.config.fontFamily;
-        const w = this.ctx.measureText(text).width + 16; // 减小内边距
-        const h = size + 10; // 高度相应减小
+        this.ctx.font = `${size}px ${this.config.fontFamily}`;
+        const w = this.ctx.measureText(text).width + 32; 
+        const h = size + 16; 
         this.ctx.fillStyle = bg;
-        this.roundRect(x, y, w, h, 8);
+        this.roundRect(x, y, w, h, 12);
         this.ctx.fill();
         this.ctx.fillStyle = col;
-        this.ctx.fillText(text, x + 8, y + size + 2);
+        this.ctx.fillText(text, x + 16, y + size + 2);
         this.ctx.restore();
     },
 
@@ -1201,8 +1100,8 @@ const Generator = {
         this.ctx.save();
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = this.config.titleColor;
-        this.ctx.font = 'bold 32px ' + this.config.fontFamily;
-        this.ctx.letterSpacing = '4px';
+        this.ctx.font = `bold 42px ${this.config.fontFamily}`;
+        this.ctx.letterSpacing = '6px';
         this.ctx.fillText(`— ${text} —`, this.canvas.width/2, y + 40);
         this.ctx.restore();
     },
@@ -1210,9 +1109,7 @@ const Generator = {
     drawCoverBg: function(img, h) {
         const w = this.canvas.width;
         const scale = Math.max(w/img.width, h/img.height);
-        const tx = (w - img.width*scale)/2;
-        const ty = (h - img.height*scale)/2;
-        this.ctx.drawImage(img, tx, ty, img.width*scale, img.height*scale);
+        this.ctx.drawImage(img, (w - img.width*scale)/2, (h - img.height*scale)/2, img.width*scale, img.height*scale);
     },
 
     roundRect: function(x, y, w, h, r) {
@@ -1230,12 +1127,10 @@ const Generator = {
         this.ctx.closePath();
     },
 
-    // 图片加载缓存
     imgCache: {},
     loadImage: function(src) {
         if(!src) return Promise.resolve(null);
         if(this.imgCache[src]) return Promise.resolve(this.imgCache[src]);
-        
         return new Promise(r => {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
@@ -1263,20 +1158,11 @@ const Generator = {
         this.ctx.clip();
         if(img) {
             const scale = Math.max(w/img.width, h/img.height);
-            const tx = (w - img.width*scale)/2;
-            const ty = (h - img.height*scale)/2;
-            this.ctx.drawImage(img, x+tx, y+ty, img.width*scale, img.height*scale);
+            this.ctx.drawImage(img, x+(w - img.width*scale)/2, y+(h - img.height*scale)/2, img.width*scale, img.height*scale);
         } else {
             this.ctx.fillStyle='#eee'; this.ctx.fillRect(x,y,w,h);
         }
         this.ctx.restore();
-    },
-
-    hexToRgba: (hex, alpha) => {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     },
 
     getStatusConfig: (s) => ({
@@ -1286,7 +1172,6 @@ const Generator = {
     }[s] || {text:s, bg:'#eee', col:'#666'})
 };
 
-// 启动
 window.addEventListener('load', () => {
     app.init();
     Generator.init();

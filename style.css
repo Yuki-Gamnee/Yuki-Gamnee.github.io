@@ -1,5 +1,4 @@
 :root {
-    /* 马卡龙色系 */
     --bg-app: #F9FBFD;
     --bg-card: #FFFFFF;
     --primary: #A0E7E5;
@@ -12,8 +11,6 @@
     --radius-lg: 18px;
     --radius-md: 12px;
     --shadow: 0 4px 12px rgba(0,0,0,0.03);
-    --space-md: 20px;
-    --space-lg: 30px;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
@@ -28,39 +25,26 @@ body {
     line-height: 1.5;
 }
 
-/* --- 空状态 --- */
+/* 空状态 */
 .empty-state {
     position: fixed; inset: 0; 
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     z-index: 1; pointer-events: none;
 }
-.float-icon-layer {
-    position: absolute; inset: 0; z-index: 10;
-    display: flex; justify-content: center; align-items: center;
-}
+.float-icon-layer { position: absolute; inset: 0; z-index: 10; display: flex; justify-content: center; align-items: center; }
 .empty-text-layer {
-    z-index: 20; 
-    background: rgba(255,255,255,0.85); backdrop-filter: blur(4px);
-    padding: 8px 20px; border-radius: 30px;
-    color: var(--text-sub); font-weight: 500; font-size: 14px;
-    margin-top: 100px;
+    z-index: 20; background: rgba(255,255,255,0.85); backdrop-filter: blur(4px);
+    padding: 8px 20px; border-radius: 30px; color: var(--text-sub); font-weight: 500; font-size: 14px; margin-top: 100px;
 }
-.float-icon {
-    font-size: 60px; position: absolute;
-    animation: simpleFloat 4s ease-in-out infinite;
-}
+.float-icon { font-size: 60px; position: absolute; animation: simpleFloat 4s ease-in-out infinite; }
 .float-icon.lemon { margin-left: -50px; animation-delay: 0s; }
 .float-icon.snow { margin-left: 50px; animation-delay: 2s; font-size: 40px; }
-@keyframes simpleFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
-}
+@keyframes simpleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
 
-/* --- Header --- */
+/* Header */
 .app-header {
     background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
-    position: sticky; top: 0; z-index: 50;
-    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border);
 }
 .header-main { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
 .app-title { margin: 0; font-size: 22px; color: var(--text-main); font-weight: 800; }
@@ -70,44 +54,31 @@ body {
 
 /* 库工具栏 */
 .library-toolbar {
-    background: #fff; padding: 10px 15px; display: flex; gap: 10px; align-items: center;
-    border-bottom: 1px solid var(--border);
+    background: #fff; padding: 10px 15px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--border);
 }
-.search-box {
-    flex: 1; background: #f5f5f5; border-radius: 20px; padding: 8px 15px; display: flex; align-items: center; gap: 8px;
-}
+.search-box { flex: 1; background: #f5f5f5; border-radius: 20px; padding: 8px 15px; display: flex; align-items: center; gap: 8px; }
 .search-box input { border: none; background: transparent; width: 100%; font-size: 14px; padding: 0; }
 
-/* --- Tab Nav --- */
+/* Tab Nav */
 .tab-nav {
     position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
     background: #fff; border-top: 1px solid var(--border);
-    display: flex; justify-content: space-around; align-items: center;
-    z-index: 100; padding-bottom: 15px;
+    display: flex; justify-content: space-around; align-items: center; z-index: 100; padding-bottom: 15px;
 }
-.tab-btn {
-    border: none; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    color: #ccc; font-size: 10px; flex: 1;
-}
+.tab-btn { border: none; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #ccc; font-size: 10px; flex: 1; }
 .tab-btn i { font-size: 24px; transition: 0.2s; }
 .tab-btn.active { color: var(--primary-dark); }
 .tab-btn.active i { transform: translateY(-2px); }
 .tab-btn.special-tab.active { color: var(--secondary); }
 
-/* --- Content Cards --- */
+/* Content Cards */
 .content-area { padding: 15px 15px; min-height: 80vh; }
 .game-card {
-    background: var(--bg-card); border-radius: var(--radius-md);
-    margin-bottom: 12px; padding: 10px 12px;
-    display: flex; gap: 12px;
-    box-shadow: var(--shadow); align-items: center; transition: transform 0.1s;
-    height: auto; min-height: 80px;
+    background: var(--bg-card); border-radius: var(--radius-md); margin-bottom: 12px; padding: 10px 12px;
+    display: flex; gap: 12px; box-shadow: var(--shadow); align-items: center; transition: transform 0.1s; min-height: 80px;
 }
 .game-card:active { transform: scale(0.98); }
-.card-cover { 
-    width: 54px; height: 72px; 
-    border-radius: 8px; object-fit: cover; background: #eee; flex-shrink: 0; 
-}
+.card-cover { width: 54px; height: 72px; border-radius: 8px; object-fit: cover; background: #eee; flex-shrink: 0; }
 .card-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .card-title { font-size: 15px; font-weight: bold; margin-bottom: 6px; color: #333; line-height: 1.3; }
 .card-meta { font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -119,445 +90,280 @@ body {
 
 .oshi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; align-items: flex-start; }
 .oshi-card {
-    background: var(--bg-card); padding: 15px 10px; border-radius: var(--radius-lg);
-    text-align: center; box-shadow: var(--shadow);
-    height: 190px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    overflow: hidden;
+    background: var(--bg-card); padding: 15px 10px; border-radius: var(--radius-lg); text-align: center; box-shadow: var(--shadow); height: 190px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
 }
-.oshi-card img {
-    width: 70px; height: 70px; 
-    border-radius: 50%; object-fit: cover;
-    margin-bottom: 10px; border: 3px solid var(--bg-app); flex-shrink: 0;
-}
-.oshi-card h4 {
-    margin: 0 0 8px 0; font-size: 15px; width: 100%; padding: 0 5px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.oshi-mini-tags { 
-    display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; 
-    height: 22px; overflow: hidden;
-}
+.oshi-card img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid var(--bg-app); flex-shrink: 0; }
+.oshi-card h4 { margin: 0 0 8px 0; font-size: 15px; width: 100%; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.oshi-mini-tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; height: 22px; overflow: hidden; }
 .oshi-mini-tags span { font-size: 10px; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; color: #999; }
 
-/* --- FAB --- */
+/* FAB */
 .fab {
-    position: fixed; bottom: 100px; right: 20px;
-    width: 52px; height: 52px; 
-    border-radius: 50%;
-    background: var(--text-main); color: #fff; 
-    border: none;
-    font-size: 24px; 
-    box-shadow: 0 4px 15px rgba(45, 52, 54, 0.4); 
-    display: flex; align-items: center; justify-content: center;
-    z-index: 105; transition: transform 0.2s;
+    position: fixed; bottom: 100px; right: 20px; width: 52px; height: 52px; border-radius: 50%;
+    background: var(--text-main); color: #fff; border: none; font-size: 24px; box-shadow: 0 4px 15px rgba(45, 52, 54, 0.4); 
+    display: flex; align-items: center; justify-content: center; z-index: 105; transition: transform 0.2s;
 }
 .fab:active { transform: scale(0.9); }
-
 .fab-mini {
-    position: fixed; 
-    bottom: 170px; 
-    right: 20px;   
-    width: 52px; height: 52px; 
-    border-radius: 50%;
-    background: var(--secondary); color: #fff;
-    border: none; font-size: 24px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 104; cursor: pointer; transition: transform 0.2s;
+    position: fixed; bottom: 170px; right: 20px; width: 52px; height: 52px; border-radius: 50%;
+    background: var(--secondary); color: #fff; border: none; font-size: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center; z-index: 104; cursor: pointer; transition: transform 0.2s;
 }
 .fab-mini:active { transform: scale(0.9); }
 
-/* --- Sheet --- */
+/* Sheet */
 .sheet {
     position: fixed; inset: 0; background: var(--bg-app); z-index: 200;
-    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-    display: flex; flex-direction: column;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); display: flex; flex-direction: column;
 }
 .sheet.active { transform: translateY(0); }
 .sheet-header {
-    height: 50px; display: flex; justify-content: space-between; align-items: center;
-    padding: 0 10px; background: #fff; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; background: #fff; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .sheet-header.transparent { background: transparent; border: none; position: absolute; width: 100%; top: 0; z-index: 10; }
 .sheet-body { flex: 1; overflow-y: auto; }
 .sheet-body.padded-body { padding: 20px; }
-
 .btn-text { background: none; border: none; font-size: 15px; padding: 10px; min-width: 60px; color: var(--text-main); cursor: pointer; }
 .btn-text.save { color: var(--primary-dark); font-weight: bold; }
 
-/* --- Form Elements --- */
+/* Form Elements */
 .form-section { margin-bottom: 24px; } 
 .form-section label { display: block; font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
 .form-section.center { display: flex; justify-content: center; align-items: center; flex-direction: column; }
 .form-row-2 { display: flex; gap: 15px; margin-bottom: 24px; }
 .form-row-2 .form-section { margin-bottom: 0; flex: 1; }
-
-.input-line {
-    width: 100%; border: none; border-bottom: 1px solid #ddd; background: transparent;
-    padding: 10px 5px; font-size: 16px; border-radius: 0; transition: 0.3s;
-}
+.input-line { width: 100%; border: none; border-bottom: 1px solid #ddd; background: transparent; padding: 10px 5px; font-size: 16px; border-radius: 0; transition: 0.3s; }
 .input-line:focus { border-color: var(--primary); }
 .input-line.large { font-size: 20px; font-weight: bold; }
 .input-line.center-text { text-align: center; }
-
-.input-box {
-    width: 100%; padding: 12px; background: #fff; border: 1px solid #ddd;
-    border-radius: 10px; font-size: 14px; appearance: none;
-}
+.input-box { width: 100%; padding: 12px; background: #fff; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; appearance: none; }
 .input-box:focus { border-color: var(--primary); outline: none;}
-
 .select-wrapper { position: relative; }
 .select-wrapper i { position: absolute; right: 15px; top: 14px; pointer-events: none; color: #999; }
 
-/* --- Upload --- */
-.upload-trigger {
-    background: #F5F5F5; position: relative; overflow: hidden;
-    display: flex; align-items: center; justify-content: center; cursor: pointer;
-}
+/* Upload */
+.upload-trigger { background: #F5F5F5; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .upload-trigger.shadow { box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .upload-trigger.square { width: 110px; height: 146px; border-radius: 12px; }
 .upload-trigger.circle { width: 90px; height: 90px; border-radius: 50%; }
 .upload-trigger.circle.large-avatar { width: 110px; height: 110px; margin-bottom: 10px; }
 .upload-trigger img { width: 100%; height: 100%; object-fit: cover; position: absolute; z-index: 2; }
 .upload-trigger .placeholder { text-align: center; color: #AAA; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
-.edit-badge {
-    position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.4);
-    height: 25px; display: flex; justify-content: center; align-items: center; color: #fff; z-index: 3; font-size: 14px;
-}
+.edit-badge { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.4); height: 25px; display: flex; justify-content: center; align-items: center; color: #fff; z-index: 3; font-size: 14px; }
 
-/* --- Status Select --- */
+/* Status Select */
 .status-group { display: flex; gap: 10px; }
-.status-option {
-    flex: 1; background: #fff; border: 1px solid #eee; padding: 12px 0;
-    border-radius: 10px; text-align: center; color: #888; font-size: 12px;
-    display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
-}
+.status-option { flex: 1; background: #fff; border: 1px solid #eee; padding: 12px 0; border-radius: 10px; text-align: center; color: #888; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
 .status-option i { font-size: 20px; }
-.status-option.active {
-    background: var(--text-main); color: #fff; border-color: var(--text-main);
-    box-shadow: 0 4px 10px rgba(45, 52, 54, 0.2);
-}
+.status-option.active { background: var(--text-main); color: #fff; border-color: var(--text-main); box-shadow: 0 4px 10px rgba(45, 52, 54, 0.2); }
 
-/* --- Quick Oshi --- */
-.quick-oshi-card {
-    background: #F0FBFA; border-radius: 12px; padding: 12px; margin-bottom: 24px;
-    border: 1px solid #C5EAE8;
-}
+/* Quick Oshi & Others */
+.quick-oshi-card { background: #F0FBFA; border-radius: 12px; padding: 12px; margin-bottom: 24px; border: 1px solid #C5EAE8; }
 .quick-header { font-size: 12px; font-weight: bold; color: var(--primary-dark); margin-bottom: 10px; display: flex; align-items: center; gap: 5px;}
 .quick-body { display: flex; align-items: center; gap: 12px; }
 .upload-trigger.circle.small { width: 44px; height: 44px; flex-shrink: 0; background: #fff; border: 1px solid #eee;}
 .input-clean { flex: 1; border: none; background: transparent; font-size: 14px; font-weight: 500; outline: none; }
 
-/* --- Date Row --- */
 .form-block { margin-bottom: 24px; }
 .block-title { font-size: 11px; color: #888; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .date-row { display: flex; gap: 12px; }
 .date-col { flex: 1; }
 .sub-label { display: block; font-size: 10px; color: #999; margin-bottom: 4px; }
 
-/* --- Settings --- */
-.backup-card { 
-    background: #FAFAFA; border: 1px solid #EEE; padding: 15px; 
-    border-radius: 14px; margin-top: 15px; 
-}
+/* Settings */
+.backup-card { background: #FAFAFA; border: 1px solid #EEE; padding: 15px; border-radius: 14px; margin-top: 15px; }
 .backup-actions { margin-top: 10px; background: #fff; border-radius: 10px; border: 1px solid #eee; overflow: hidden; }
-.btn-action-row {
-    width: 100%; border: none; background: #fff; padding: 12px 15px;
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 13px; color: var(--text-main);
-}
+.btn-action-row { width: 100%; border: none; background: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-main); }
 .btn-action-row:active { background: #f9f9f9; }
 .divider { height: 1px; background: #eee; width: 100%; }
 
-/* --- Detail View --- */
+/* Detail View */
 .detail-hero { height: 260px; position: relative; }
 .detail-hero-overlay { height: 100px; position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.7), transparent); padding: 20px; color: #fff; display: flex; flex-direction: column; justify-content: flex-end;}
 .detail-hero-overlay h2 { margin: 0; font-size: 24px; }
 .detail-content { padding: 25px 15px; margin-top: -20px; border-radius: 20px 20px 0 0; background: var(--bg-app); position: relative; z-index: 5; }
-
 .info-card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 15px; box-shadow: var(--shadow); }
 .info-row { display: flex; justify-content: space-between; text-align: center; }
 .info-item { display: flex; flex-direction: column; gap: 4px; }
 .info-item label { color: #999; font-size: 11px; }
 .info-item span { font-weight: bold; font-size: 15px; }
 .info-dates-row { margin-top: 15px; padding-top: 12px; border-top: 1px solid #f5f5f5; text-align: center; color: #666; font-size: 12px; }
-
 .related-oshi-list { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 5px; }
 .detail-oshi-item { text-align: center; width: 60px; flex-shrink: 0; cursor: pointer; }
 .detail-oshi-item img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 5px; border: 2px solid #fff; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 .detail-oshi-item span { display: block; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* --- Spacer --- */
+/* Spacer */
 .form-spacer { height: 15px; }
 .bottom-spacer { height: 40px; }
 
-/* ===== 详情页按钮 ===== */
+/* Detail Buttons */
 .btn-round-back, .btn-round-icon {
-    width: 48px; height: 48px; border-radius: 50%; border: none;
-    display: flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: all 0.2s ease; font-size: 26px; color: #fff;
-    background: rgba(255,255,255,0.3); backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    border: 0.5px solid rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 0.5px solid rgba(255,255,255,0.4);
 }
-.btn-round-back {
-    background: rgba(160,231,229,0.25); border-color: rgba(160,231,229,0.5);
-    color: #2D3436; margin-left: 12px;
-}
+.btn-round-back { background: rgba(160,231,229,0.25); border-color: rgba(160,231,229,0.5); color: #2D3436; margin-left: 12px; }
 .btn-round-back i { font-size: 28px; }
-.sheet-header.transparent .header-actions {
-    display: flex; gap: 12px; margin-right: 12px;
-}
-.btn-round-icon {
-    background: rgba(255,255,255,0.5); color: #2D3436; margin: 0;
-}
-.btn-round-icon i { font-size: 26px; }
-.btn-round-icon.danger {
-    background: rgba(255,183,178,0.35); color: #c44a4a; border-color: rgba(255,183,178,0.6);
-}
-.btn-round-back:active, .btn-round-icon:active {
-    transform: scale(0.92); background: rgba(255,255,255,0.7); backdrop-filter: blur(15px);
-}
-.btn-round-back, .btn-round-icon { margin: 0; }
+.sheet-header.transparent .header-actions { display: flex; gap: 12px; margin-right: 12px; }
+.btn-round-icon { background: rgba(255,255,255,0.5); color: #2D3436; margin: 0; }
+.btn-round-icon.danger { background: rgba(255,183,178,0.35); color: #c44a4a; border-color: rgba(255,183,178,0.6); }
 
-/* --- Tags Input --- */
-.tag-input-container {
-    background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 6px;
-    display: flex; flex-wrap: wrap; gap: 5px;
-}
+/* Tags */
+.tag-input-container { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
 .tags-wrapper { display: flex; flex-wrap: wrap; gap: 5px; width: 100%;}
-.tag-pill {
-    background: var(--primary); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 12px;
-    display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap;
-}
+.tag-pill { background: var(--primary); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
 .tag-pill.sm { padding: 4px 12px; font-size: 12px; cursor: default; }
 #oshi-tag-input { border: none; flex: 1; min-width: 80px; padding: 6px; font-size: 13px; background: transparent; }
 
-/* --- Oshi Detail --- */
-.oshi-hero-container {
-    width: 100%; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden;
-    margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-}
+/* Oshi Detail */
+.oshi-hero-container { width: 100%; aspect-ratio: 1/1; border-radius: 20px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
 .oshi-hero-container img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .oshi-sub { color: var(--text-sub); margin-top: -5px; font-size: 14px; margin-bottom: 15px; }
 .tags-row-center { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 25px; }
-.quote-box {
-    background: #fff; padding: 25px; border-radius: 16px; margin: 20px 0;
-    font-style: italic; color: #555; box-shadow: var(--shadow); position: relative; line-height: 1.6;
-}
+.quote-box { background: #fff; padding: 25px; border-radius: 16px; margin: 20px 0; font-style: italic; color: #555; box-shadow: var(--shadow); position: relative; line-height: 1.6; }
 .quote-box i { position: absolute; top: -10px; left: 15px; font-size: 20px; color: var(--primary); background: #fff; padding: 0 5px; }
 
-/* --- Cropper --- */
-.fullscreen-overlay { 
-    position: fixed; inset: 0; z-index: 500; 
-    display: none; flex-direction: column; background: #000;
-}
+/* Cropper */
+.fullscreen-overlay { position: fixed; inset: 0; z-index: 500; display: none; flex-direction: column; background: #000; }
 .fullscreen-overlay.active { display: flex; }
-.cropper-center-wrapper {
-    flex: 1; position: relative; overflow: hidden;
-    display: flex; justify-content: center; align-items: center;
-}
+.cropper-center-wrapper { flex: 1; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
 .cropper-container { width: 100%; height: 100%; }
 #cropper-target-img { max-width: 100%; display: block; }
-.cropper-toolbar-large {
-    height: 80px; flex-shrink: 0; background: #111;
-    display: flex; gap: 15px; padding: 0 20px; align-items: center;
-    border-top: 1px solid #333;
-}
-.btn-crop-action {
-    flex: 1; height: 50px; border: none; border-radius: 12px;
-    font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
-}
+.cropper-toolbar-large { height: 80px; flex-shrink: 0; background: #111; display: flex; gap: 15px; padding: 0 20px; align-items: center; border-top: 1px solid #333; }
+.btn-crop-action { flex: 1; height: 50px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
 .btn-crop-action.cancel { background: #333; color: #fff; }
 .btn-crop-action.confirm { background: var(--primary); color: #fff; }
 
+
 /* ============================================== */
-/* 推图生成器 V3.0 样式 (优化版) */
+/* 推图生成器 V4.5 UI (修复版 · 丝滑优化) */
 /* ============================================== */
 
 .generator-body {
-    background: #f5f6fa;
+    background: #f4f6f9;
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: hidden; /* 禁止整体滚动，分区域滚动 */
+    overflow: hidden; 
 }
 
-/* 预览区：占据剩余空间，允许滚动 */
+/* 预览区 */
 .gen-preview-wrapper {
-    flex: 1; /* 占据大部分空间 */
+    flex: 1;  
     background: #1e272e;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow-y: auto;
+    padding: 30px 20px 60px 20px; 
+    overflow-y: auto;  
     -webkit-overflow-scrolling: touch;
+    display: block; 
+    text-align: center; 
 }
 
 .canvas-shadow-box {
+    display: inline-block; 
     width: 100%;
-    max-width: 400px;
+    max-width: 400px; 
     background: #fff;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.15); /* 更柔和的阴影 */
+    border-radius: 16px;
+    overflow: hidden;  
+    vertical-align: top;
+    transform: translateZ(0); 
+    margin-bottom: 20px; 
 }
 
 #gen-canvas {
     width: 100% !important;
     height: auto !important;
     display: block;
-    border-radius: 12px;
 }
 
-.gen-tip {
-    color: rgba(255,255,255,0.3);
-    font-size: 12px;
-    margin-top: 15px;
-    margin-bottom: 5px;
-}
-
-/* 控制面板：缩小高度，允许滚动 */
+/* 下半区：面板外壳 (支持拖拽) */
 .gen-controls-container {
-    background: #fff;
-    padding: 20px 20px;
-    border-top-left-radius: 24px;
-    border-top-right-radius: 24px;
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.03);
-    max-height: 35vh; /* 减小高度，让预览区更大 */
-    overflow-y: auto;
+    flex-shrink: 0;  
+    height: 48vh; /* 初始高度 */
+    min-height: 15vh;
+    max-height: 85vh;
+    background: #ffffff;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -12px 30px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
     z-index: 10;
+    position: relative;
+    will-change: height;
+    transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); /* 松手后平滑过渡 */
 }
 
+/* 拖拽手柄区 */
+.drag-handle-zone {
+    width: 100%;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: grab;
+    flex-shrink: 0;
+    touch-action: none; /* 禁止页面滚动 */
+}
+.drag-handle-zone:active { cursor: grabbing; }
+
+.drag-bar {
+    width: 44px;
+    height: 5px;
+    background: #dfe6e9;
+    border-radius: 3px;
+    transition: background 0.2s, transform 0.2s;
+}
+.drag-handle-zone:active .drag-bar { 
+    background: #b2bec3; 
+    transform: scaleX(1.2); /* 更明显的反馈 */
+}
+
+/* 面板内部滚动部分 */
+.gen-controls-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px 35px 20px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 内部卡片样式 */
 .control-card {
-    margin-bottom: 20px;
+    background: #fff;
+    border: 1px solid #f0f3f6;
+    border-radius: 20px; /* 统一圆角 */
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02); 
 }
 .control-card:last-child { margin-bottom: 0; }
 
-.card-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #a4b0be;
-    margin-bottom: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-}
-
-/* 胶囊开关 */
-.tags-toggle-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-.toggle-tag {
-    cursor: pointer;
-}
+.card-label { font-size: 13px; font-weight: 800; color: #b2bec3; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1.5px; }
+.toggle-tag input { position: absolute; opacity: 0; width: 0; height: 0; }
+.tags-toggle-group { display: flex; flex-wrap: wrap; gap: 10px; }
+.toggle-tag { cursor: pointer; }
 .toggle-tag span {
-    display: inline-block;
-    padding: 8px 16px;
-    background: #f1f2f6;
-    color: #57606f;
-    font-size: 13px;
-    border-radius: 20px;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    display: block; padding: 8px 18px; background: #f1f3f6; color: #57606f; font-size: 13px;
+    border-radius: 24px; font-weight: 600; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); border: 1px solid transparent;
 }
-.toggle-tag input:checked + span {
-    background: var(--primary);
-    color: #fff;
-    box-shadow: 0 4px 8px rgba(160, 231, 229, 0.3);
-}
+.toggle-tag input:checked + span { background: var(--primary); color: #fff; box-shadow: 0 6px 14px rgba(160, 231, 229, 0.45); border-color: rgba(255,255,255,0.2); }
 
-/* 分段选择器 */
-.segment-control {
-    display: flex;
-    background: #f1f2f6;
-    padding: 4px;
-    border-radius: 30px;
-}
-.segment-btn {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 8px 12px; /* 调整内边距 */
-    font-size: 13px;
-    color: #747d8c;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap; /* 防止换行 */
-}
-.segment-btn.active {
-    background: #fff;
-    color: #2d3436;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
+.setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.setting-row:last-child { margin-bottom: 0; }
+.setting-row span { font-size: 14px; color: #4b4b4b; font-weight: 600; }
 
-/* ===== 胶囊复选框隐藏原生input ===== */
-.toggle-tag input {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
+.segment-control { display: flex; background: #f1f3f6; padding: 4px; border-radius: 20px; }
+.segment-btn { border: none; background: transparent; padding: 7px 18px; font-size: 13px; color: #747d8c; border-radius: 16px; cursor: pointer; transition: 0.2s ease; white-space: nowrap; font-weight: 500; }
+.segment-btn.active { background: #fff; color: #2d3436; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
-/* 设置行 */
-.setting-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-}
-.setting-row:last-child {
-    margin-bottom: 0;
-}
-.setting-row span {
-    font-size: 14px;
-    color: #555;
-}
-.bg-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-.btn-small-outline {
-    border: 1px solid #ddd;
-    background: transparent;
-    padding: 6px 12px;
-    border-radius: 30px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.btn-small-outline:hover {
-    background: #f5f5f5;
-}
-.btn-small-outline.danger {
-    border-color: #ffb7b2;
-    color: #c44a4a;
-}
-.btn-small-outline.danger:hover {
-    background: #fff0f0;
-}
+.bg-actions { display: flex; gap: 10px; align-items: center; }
+.btn-small-outline { border: 1px solid #dfe6e9; background: #fff; padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s ease; display: inline-flex; align-items: center; gap: 6px; color: #57606f; }
+.btn-small-outline:hover { background: #f8f9fa; border-color: #b2bec3; }
+.btn-small-outline.danger { border-color: #ffb7b2; color: #c44a4a; }
 
-/* 颜色选择器样式 */
-input[type="color"] {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
-    padding: 2px;
-    background: transparent;
-    cursor: pointer;
-}
-input[type="color"]::-webkit-color-swatch-wrapper {
-    padding: 0;
-}
-input[type="color"]::-webkit-color-swatch {
-    border: 2px solid #fff;
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
+input[type="color"] { width: 36px; height: 36px; border: none; border-radius: 50%; padding: 0; background: transparent; cursor: pointer; }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: 2px solid #dfe6e9; border-radius: 50%; box-shadow: inset 0 0 0 2px #fff; }
+input[type="range"] { accent-color: var(--primary); width: 60%; }
