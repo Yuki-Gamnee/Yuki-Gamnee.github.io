@@ -197,6 +197,81 @@ const app = {
                 this.openOshiForm(null, game.id);
             }
         });
+
+        // ===== 新增功能：自动计算游玩时间 =====
+        const calcDuration = () => {
+            const start = document.getElementById('game-start-date').value;
+            const end = document.getElementById('game-end-date').value;
+            if(start && end) {
+                const d1 = new Date(start);
+                const d2 = new Date(end);
+                if(d2 >= d1) {
+                    const diffTime = Math.abs(d2 - d1);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 含当天
+                    const currentVal = document.getElementById('game-duration').value;
+                    // 仅当输入框为空，或者内容看起来是自动生成的纯天数时才覆盖
+                    if(!currentVal || currentVal.includes('天')) {
+                        document.getElementById('game-duration').value = `${diffDays} 天`;
+                    }
+                }
+            }
+        };
+        document.getElementById('game-start-date').addEventListener('change', calcDuration);
+        document.getElementById('game-end-date').addEventListener('change', calcDuration);
+
+        // ===== 新增功能：账单 =====
+        document.getElementById('trigger-bill').addEventListener('click', () => {
+            this.renderBill();
+            document.getElementById('sheet-bill').classList.add('active');
+        });
+
+        let isBillHidden = true;
+        document.getElementById('btn-toggle-amount').addEventListener('click', (e) => {
+            isBillHidden = !isBillHidden;
+            const btn = e.currentTarget;
+            const span = document.getElementById('bill-total-amount');
+            const realAmount = btn.dataset.amount; // 暂存真实金额
+            
+            if(isBillHidden) {
+                span.textContent = '****';
+                btn.innerHTML = '<i class="ph ph-eye-slash"></i>';
+            } else {
+                span.textContent = '¥ ' + realAmount;
+                btn.innerHTML = '<i class="ph ph-eye"></i>';
+            }
+        });
+    },
+
+    // ===== 账单渲染方法 =====
+    renderBill: function() {
+        const listContainer = document.getElementById('bill-list-container');
+        listContainer.innerHTML = '';
+        
+        let total = 0;
+        const pricedGames = this.data.games.filter(g => g.price && !isNaN(parseFloat(g.price)));
+        
+        pricedGames.forEach(g => {
+            total += parseFloat(g.price);
+            
+            const div = document.createElement('div');
+            div.className = 'bill-item';
+            div.innerHTML = `
+                <div>
+                    <div class="bill-game-name">${g.name}</div>
+                    <div class="bill-game-platform">${g.platform || '未知平台'}</div>
+                </div>
+                <div class="bill-game-price">¥${g.price}</div>
+            `;
+            listContainer.appendChild(div);
+        });
+        if(pricedGames.length === 0) {
+            listContainer.innerHTML = '<div class="bill-item empty">暂无消费记录</div>';
+        }
+        const toggleBtn = document.getElementById('btn-toggle-amount');
+        toggleBtn.dataset.amount = total.toFixed(0);
+        // 重置为隐藏状态
+        document.getElementById('bill-total-amount').textContent = '****';
+        toggleBtn.innerHTML = '<i class="ph ph-eye-slash"></i>';
     },
 
     exportBackup: function() {
@@ -281,8 +356,25 @@ const app = {
             let list = [...this.data.games];
             const kw = document.getElementById('lib-search').value.toLowerCase();
             if(kw) list = list.filter(g => g.name.toLowerCase().includes(kw));
-            if(sortOrder === 'name') list.sort((a,b) => a.name.localeCompare(b.name));
-            else if(sortOrder === 'status') list.sort((a,b) => a.status.localeCompare(b.status));
+            
+            // ===== 修复排序逻辑 =====
+            if (sortOrder === 'name') {
+                // 按名称升序
+                list.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortOrder === 'status') {
+                // 按状态分组，组内按名称升序
+                const statusOrder = { 'wishlist': 0, 'playing': 1, 'finished': 2 };
+                list.sort((a, b) => {
+                    if (a.status !== b.status) {
+                        return statusOrder[a.status] - statusOrder[b.status];
+                    }
+                    return a.name.localeCompare(b.name);
+                });
+            } else {
+                // 默认按创建时间倒序（最新添加的在前）
+                list.sort((a, b) => b.createdAt - a.createdAt);
+            }
+            
             if (list.length === 0) isEmpty = true;
             else list.forEach(g => container.appendChild(this.createGameCard(g)));
         } else {
@@ -352,7 +444,6 @@ const app = {
         const form = document.getElementById('game-form');
         form.reset();
         
-        // 强制清空隐藏的 ID，防止新增变成覆盖
         document.getElementById('game-id').value = ''; 
 
         document.getElementById('preview-game-cover').style.display = 'none';
@@ -372,6 +463,8 @@ const app = {
             document.getElementById('game-end-date').value = game.endDate;
             document.getElementById('game-note').value = game.note;
             document.getElementById('game-status').value = game.status;
+            // 【新增】读取时长
+            document.getElementById('game-duration').value = game.duration || '';
             
             const activeOpt = document.querySelector(`.status-option[data-val="${game.status}"]`);
             if(activeOpt) activeOpt.classList.add('active');
@@ -383,11 +476,11 @@ const app = {
             }
             document.getElementById('quick-oshi-section').style.display = 'none';
         } else {
-            // 新增状态，默认选中当前 Tab 对应的状态
             let defaultStatus = this.currentTab === 'library' || this.currentTab === 'oshi' ? 'wishlist' : this.currentTab;
             document.querySelector(`.status-option[data-val="${defaultStatus}"]`).classList.add('active');
             document.getElementById('game-status').value = defaultStatus;
             document.getElementById('quick-oshi-section').style.display = 'block';
+            document.getElementById('game-duration').value = ''; // 清空时长
         }
         document.getElementById('sheet-game-form').classList.add('active');
     },
@@ -406,6 +499,8 @@ const app = {
             price: document.getElementById('game-price').value,
             startDate: document.getElementById('game-start-date').value,
             endDate: document.getElementById('game-end-date').value,
+            // 【新增】保存时长
+            duration: document.getElementById('game-duration').value,
             note: document.getElementById('game-note').value,
             cover: document.getElementById('preview-game-cover').src,
             createdAt: Date.now()
@@ -436,7 +531,6 @@ const app = {
         const form = document.getElementById('oshi-form');
         form.reset();
         
-        // 同理修复
         document.getElementById('oshi-id').value = '';
 
         document.getElementById('preview-oshi-avatar').style.display = 'none';
@@ -565,22 +659,17 @@ const Generator = {
     canvas: null,
     ctx: null,
     
-    // 基础配置
     config: {
         showProfile: true, showPlaying: true, showFinished: true, showWishlist: false, showOshi: true,
         bgColor: '#f4f6f9', bgImage: null, cardOpacity: 1.0,
         gameColumns: 1, oshiColumns: 1,
-        
-        baseWidth: 1080, 
-        paddingX: 50,
-        paddingY: 80, 
+        baseWidth: 1080, paddingX: 50, paddingY: 80, 
         fontFamily: 'sans-serif',
         colTitle: '#2d3436', colSub: '#636e72', titleColor: '#a4b0be'
     },
     
-    // 防抖定时器
     _drawTimer: null,
-    
+
     init: function() {
         this.canvas = document.getElementById('gen-canvas');
         if (!this.canvas) return;
@@ -633,7 +722,6 @@ const Generator = {
     },
 
     bindEvents: function() {
-        // --- 1. 拖拽面板手势控制（增加活动状态检查和阻止滚动）---
         const container = document.getElementById('gen-controls-container');
         const handle = document.getElementById('gen-drag-handle');
         const sheet = document.getElementById('sheet-generator');
@@ -654,12 +742,10 @@ const Generator = {
 
         const onDragMove = (e) => {
             if (!isDragging || !isGeneratorActive()) return;
-            // 阻止页面滚动
             if (e.cancelable) e.preventDefault();
             const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-            const deltaY = startY - clientY; // 往上滑为正
+            const deltaY = startY - clientY;
             let newHeight = startHeight + deltaY;
-            // 限制在 min/max 之间（vh换算）
             const vh = (newHeight / window.innerHeight) * 100;
             if (vh < 15) newHeight = window.innerHeight * 0.15;
             if (vh > 85) newHeight = window.innerHeight * 0.85;
@@ -674,7 +760,6 @@ const Generator = {
         };
 
         if (handle && container) {
-            // 使用被动监听启动，但移动时主动调用 preventDefault
             handle.addEventListener('touchstart', onDragStart, { passive: true });
             handle.addEventListener('mousedown', onDragStart);
             document.addEventListener('touchmove', onDragMove, { passive: false });
@@ -683,14 +768,12 @@ const Generator = {
             document.addEventListener('mouseup', onDragEnd);
         }
 
-        // --- 2. 传统表单交互绑定（使用 requestAnimationFrame 防抖）---
         const fab = document.getElementById('fab-generator');
         if(fab) fab.onclick = () => {
             document.getElementById('sheet-generator').classList.add('active');
             this.draw(); 
         };
 
-        // 防抖刷新
         const refresh = () => {
             if (this._drawTimer) cancelAnimationFrame(this._drawTimer);
             this._drawTimer = requestAnimationFrame(() => {
@@ -769,7 +852,6 @@ const Generator = {
         };
     },
 
-    // --- 渲染引擎 ---
     draw: async function() {
         const user = {
             name: localStorage.getItem('gamnee_username') || 'Gamnée 玩家',
@@ -785,14 +867,11 @@ const Generator = {
         });
         const oshis = this.config.showOshi ? (app.data.oshi || []) : [];
 
-        // 1. 获取动态高度 (干跑)
         const totalHeight = await this.layoutEngine(user, games, oshis, true);
 
-        // 2. 设置画布真实像素
         this.canvas.width = this.config.baseWidth;
         this.canvas.height = totalHeight;
         
-        // 背景绘制
         if(this.config.bgImage) {
             this.drawCoverBg(this.config.bgImage, totalHeight);
         } else {
@@ -800,10 +879,8 @@ const Generator = {
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
 
-        // 3. 真实渲染
         await this.layoutEngine(user, games, oshis, false);
 
-        // 底部水印
         this.ctx.fillStyle = '#b2bec3';
         this.ctx.font = '500 28px ' + this.config.fontFamily;
         this.ctx.textAlign = 'center';
@@ -813,15 +890,13 @@ const Generator = {
     layoutEngine: async function(user, games, oshis, dryRun) {
         let cursorY = this.config.paddingY;
         const contentW = this.config.baseWidth - (this.config.paddingX * 2);
-        const CARD_GAP = 40; // 卡片间距
+        const CARD_GAP = 40;
 
-        // 1. Profile
         if(this.config.showProfile) {
             const h = await this.renderProfileCard(user, this.config.paddingX, cursorY, contentW, dryRun);
             cursorY += h + 60; 
         }
 
-        // 2. Games
         if(games.length > 0) {
             if(!dryRun) this.drawSectionTitle('GAME RECORD', cursorY);
             cursorY += 100;
@@ -849,7 +924,6 @@ const Generator = {
             cursorY += 40;
         }
 
-        // 3. Oshi
         if(oshis.length > 0) {
             if(!dryRun) this.drawSectionTitle('MY OSHI', cursorY);
             cursorY += 100;
@@ -876,10 +950,8 @@ const Generator = {
             }
         }
 
-        return cursorY + 120; // 底部留白
+        return cursorY + 120;
     },
-
-    // --- 组件绘制 (优化阴影与圆角参数) ---
 
     renderProfileCard: async function(u, x, y, w, dryRun) {
         const pad = 50;
@@ -902,7 +974,7 @@ const Generator = {
             await this.drawCircleImg(u.avatar, x + pad, y + (cardH-avatarSize)/2, avatarSize);
 
             let tY = y + pad + 55;
-            if (contentH < avatarSize) tY += (avatarSize - contentH) / 2; // 文字太少时垂直居中对齐头像
+            if (contentH < avatarSize) tY += (avatarSize - contentH) / 2;
 
             this.ctx.textAlign = 'left';
             this.ctx.fillStyle = this.config.colTitle;
@@ -930,7 +1002,7 @@ const Generator = {
         const titleLines = this.getWrapLines(g.name, textW);
         const titleH = titleLines.length * 60;
 
-        const textTotalH = titleH + 20 + 44 + 30 + 34; // 标题 + 间距 + Badge + 间距 + 平台
+        const textTotalH = titleH + 20 + 44 + 30 + 34;
         const cardH = pad + Math.max(coverH, textTotalH) + pad;
 
         if(!dryRun) {
@@ -967,7 +1039,7 @@ const Generator = {
 
         if(!dryRun) {
             this.drawCardBase(x, y, w, cardH);
-            await this.drawRoundedImg(g.cover, x, y, w, coverH, {tl:36, tr:36, bl:0, br:0}); // 网格上边圆角贴合大卡片
+            await this.drawRoundedImg(g.cover, x, y, w, coverH, {tl:36, tr:36, bl:0, br:0});
 
             let tY = y + coverH + pad + 38;
             this.ctx.fillStyle = this.config.colTitle;
@@ -1052,8 +1124,6 @@ const Generator = {
         return cardH;
     },
 
-    // --- 绘图引擎工具库 ---
-
     getWrapLines: function(text, maxWidth) {
         if(!text) return [];
         const chars = text.split('');
@@ -1073,12 +1143,11 @@ const Generator = {
     drawCardBase: function(x, y, w, h) {
         this.ctx.save();
         this.ctx.globalAlpha = this.config.cardOpacity;
-        // 高级弥散阴影（更柔和）
         this.ctx.shadowColor = 'rgba(0,0,0,0.08)'; 
         this.ctx.shadowBlur = 24;
         this.ctx.shadowOffsetY = 8;
         this.ctx.fillStyle = '#fff';
-        this.roundRect(x, y, w, h, 28); // 统一圆角28px
+        this.roundRect(x, y, w, h, 28);
         this.ctx.fill();
         this.ctx.restore();
     },

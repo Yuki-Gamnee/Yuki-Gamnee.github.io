@@ -52,10 +52,11 @@
     <button id="fab-add" class="fab"><i class="ph ph-plus"></i></button>
     <button id="fab-generator" class="fab-mini"><i class="ph ph-image-square"></i></button>
 
+    <!-- 推图生成器 -->
     <div id="sheet-generator" class="sheet fullscreen-sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-generator">关闭</button>
-            <h3>生成推し長図</h3>
+            <h3>WonderLand</h3>
             <button class="btn-text save" id="btn-export-image">保存图片</button>
         </div>
 
@@ -102,8 +103,8 @@
                         <div class="setting-row">
                             <span>字体样式</span>
                             <div class="segment-control">
-                                <button class="segment-btn active" data-type="font" data-val="sans-serif">无衬线</button>
-                                <button class="segment-btn" data-type="font" data-val="'Songti SC', 'STSong', serif">衬线体</button>
+                                <button class="segment-btn active" data-type="font" data-val="sans-serif">黑体</button>
+                                <button class="segment-btn" data-type="font" data-val="'Songti SC', 'STSong', serif">宋体</button>
                             </div>
                         </div>
                     </div>
@@ -134,6 +135,8 @@
             </div>
         </div>
     </div>
+
+    <!-- 设置页面（含账单入口） -->
     <div id="sheet-settings" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-settings">关闭</button>
@@ -146,6 +149,7 @@
                 <div class="edit-badge"><i class="ph ph-pencil-simple"></i></div>
             </div>
             <div class="form-spacer"></div>
+
             <div class="form-section">
                 <label>我的昵称</label>
                 <input type="text" id="user-name-input" class="input-line center-text" value="Gamnée 玩家">
@@ -154,6 +158,17 @@
                 <label>个性签名</label>
                 <textarea id="user-bio-input" class="input-box" rows="3" placeholder="写一句话介绍自己..."></textarea>
             </div>
+
+            <!-- 新增账单入口 -->
+            <div class="menu-link-card" id="trigger-bill">
+                <div class="menu-icon"><i class="ph ph-receipt"></i></div>
+                <div class="menu-info">
+                    <span class="menu-title">游戏账单</span>
+                    <span class="menu-sub">累计投入金额统计</span>
+                </div>
+                <i class="ph ph-caret-right"></i>
+            </div>
+
             <div class="info-card backup-card">
                 <div class="card-header"><i class="ph ph-floppy-disk"></i> 数据管理</div>
                 <div class="backup-actions">
@@ -173,6 +188,7 @@
         </div>
     </div>
 
+    <!-- 游戏表单（含游玩时长） -->
     <div id="sheet-game-form" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-game-form">取消</button>
@@ -205,7 +221,7 @@
                         <label>游戏平台</label><input type="text" id="game-platform" class="input-box" placeholder="Switch/Steam...">
                     </div>
                     <div class="form-section half">
-                        <label>入手价格</label><input type="number" id="game-price" class="input-box" placeholder="0">
+                        <label>入手价格</label><input type="number" id="game-price" class="input-box" placeholder="0" step="0.01">
                     </div>
                 </div>
                 <div class="form-block">
@@ -213,6 +229,14 @@
                     <div class="date-row">
                         <div class="date-col"><span class="sub-label">开始</span><input type="date" id="game-start-date" class="input-box"></div>
                         <div class="date-col"><span class="sub-label">结束</span><input type="date" id="game-end-date" class="input-box"></div>
+                    </div>
+                    <!-- 新增游玩时长输入框 -->
+                    <div style="margin-top: 10px;">
+                        <span class="sub-label">游玩时长 (自动计算/可编辑)</span>
+                        <div class="input-with-icon">
+                            <i class="ph ph-clock"></i>
+                            <input type="text" id="game-duration" class="input-box" placeholder="例如：15小时 / 3天">
+                        </div>
                     </div>
                 </div>
                 <div id="quick-oshi-section" class="quick-oshi-card">
@@ -234,6 +258,7 @@
         </div>
     </div>
 
+    <!-- 推し表单 -->
     <div id="sheet-oshi-form" class="sheet">
         <div class="sheet-header">
             <button class="btn-text cancel" data-close="sheet-oshi-form">取消</button>
@@ -277,6 +302,7 @@
         </div>
     </div>
 
+    <!-- 游戏详情（优化添加按钮） -->
     <div id="sheet-game-detail" class="sheet detail-sheet">
         <div class="sheet-header transparent">
             <button class="btn-round-back" data-close="sheet-game-detail"><i class="ph ph-arrow-left"></i></button>
@@ -299,7 +325,11 @@
                 <div class="info-dates-row"><i class="ph ph-calendar-blank"></i> <span id="detail-dates">-</span></div>
             </div>
             <div class="info-card">
-                <div class="card-header-row"><span>💖 角色 (推し)</span><button id="btn-add-oshi-from-game" class="btn-xs-outline">添加</button></div>
+                <div class="card-header-row">
+                    <span>💖 角色 (推し)</span>
+                    <!-- 替换后的圆形添加按钮 -->
+                    <button id="btn-add-oshi-from-game" class="btn-icon-circle-add"><i class="ph ph-plus"></i></button>
+                </div>
                 <div id="detail-related-oshis" class="related-oshi-list"></div>
             </div>
             <div class="info-card">
@@ -310,6 +340,7 @@
         </div>
     </div>
 
+    <!-- 推し详情 -->
     <div id="sheet-oshi-detail" class="sheet detail-sheet">
         <div class="sheet-header">
             <button class="btn-text" data-close="sheet-oshi-detail"><i class="ph ph-arrow-left"></i> 返回</button>
@@ -331,6 +362,31 @@
         </div>
     </div>
 
+    <!-- 账单详情页（新增） -->
+    <div id="sheet-bill" class="sheet">
+        <div class="sheet-header">
+            <button class="btn-text" data-close="sheet-bill"><i class="ph ph-arrow-left"></i> 返回</button>
+            <h3>我的账单</h3>
+            <div style="width: 40px;"></div> <!-- 占位 -->
+        </div>
+        <div class="sheet-body padded-body">
+            <div class="bill-hero-card">
+                <div class="bill-label">累计投入 (CNY)</div>
+                <div class="bill-amount-row">
+                    <span id="bill-total-amount" class="hidden-amount">****</span>
+                    <button id="btn-toggle-amount" class="btn-eye"><i class="ph ph-eye-slash"></i></button>
+                </div>
+            </div>
+            
+            <div class="bill-list-header">消费明细</div>
+            <div id="bill-list-container" class="bill-list">
+                <!-- JS 将在这里渲染列表 -->
+            </div>
+            <div class="bottom-spacer"></div>
+        </div>
+    </div>
+
+    <!-- 裁剪容器 -->
     <div id="cropper-overlay" class="fullscreen-overlay">
         <div class="cropper-center-wrapper">
             <div class="cropper-container"><img id="cropper-target-img" src=""></div>
